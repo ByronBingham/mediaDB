@@ -1,0 +1,23 @@
+{
+    "ingest_groups":[
+        {
+            "name": "AnimeArt",
+            "source_dirs": [
+                "../test_data/anime_art"
+            ],
+            "target_db": "ART",
+            "auto_tag": true,
+            "jfif_to_jpg": true
+        },
+        {
+            "name": "Memes",
+            "source_dirs": [
+                "../test_data/memes"
+            ],
+            "target_db": "MEMES",
+            "auto_tag": false,
+            "jfif_to_jpg": true
+        }
+    ],
+    "num_of_processes": 1
+}
