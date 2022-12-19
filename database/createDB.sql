@@ -4,6 +4,8 @@ DROP TABLE IF EXISTS bmedia_schema.videos_tags_join;
 DROP TABLE IF EXISTS bmedia_schema.music_playlists_tags_join;
 DROP TABLE IF EXISTS bmedia_schema.music_tags_join;
 DROP TABLE IF EXISTS bmedia_schema.art_tags_join;
+DROP TABLE IF EXISTS bmedia_schema.nsfw_images_tags_join;
+DROP TABLE IF EXISTS bmedia_schema.memes_tags_join;
 
 DROP TABLE IF EXISTS bmedia_schema.tags;
 DROP TABLE IF EXISTS bmedia_schema.videos;
@@ -11,6 +13,8 @@ DROP TABLE IF EXISTS bmedia_schema.tag_categories;
 DROP TABLE IF EXISTS bmedia_schema.music_playlists;
 DROP TABLE IF EXISTS bmedia_schema.music;
 DROP TABLE IF EXISTS bmedia_schema.art;
+DROP TABLE IF EXISTS bmedia_schema.nsfw_images;
+DROP TABLE IF EXISTS bmedia_schema.memes;
 
 DROP SCHEMA IF EXISTS bmedia_schema;
 DROP DATABASE IF EXISTS bmedia;
@@ -119,6 +123,13 @@ CREATE TABLE bmedia_schema.tag_category_join(
     FOREIGN KEY (tag_category_name) REFERENCES bmedia_schema.tag_categories(tag_category_name),
     UNIQUE (tag_name, tag_category_name)
 );
+
+-- Create other image tables
+CREATE TABLE bmedia_schema.nsfw_images AS TABLE bmedia_schema.art;
+CREATE TABLE bmedia_schema.nsfw_images_tags_join AS TABLE bmedia_schema.art_tags_join;
+
+CREATE TABLE bmedia_schema.memes AS TABLE bmedia_schema.art;
+CREATE TABLE bmedia_schema.memes_tags_join AS TABLE bmedia_schema.art_tags_join;
 
 -- Set permissions
 GRANT CREATE, CONNECT, TEMPORARY ON DATABASE bmedia TO bmedia_admin;
