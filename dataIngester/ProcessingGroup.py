@@ -1,4 +1,4 @@
-from dataIngester.ingester import DBEnum
+from DBEnum import DBEnum
 
 
 class ProcessingGroup:

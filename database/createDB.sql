@@ -37,9 +37,13 @@ CREATE TABLE bmedia_schema.art(
     md5 VARCHAR(32),
     filename VARCHAR(255),
     file_path VARCHAR(255),
+    resolution_width INTEGER,
+    resolution_height INTEGER,
+    file_size_bytes INTEGER,
     PRIMARY KEY (md5, filename),
     UNIQUE (file_path)
 );
+CREATE INDEX art_index ON bmedia_schema.art(resolution_width, resolution_height, file_size_bytes);
 
 CREATE TABLE bmedia_schema.music(
     md5 VARCHAR(32),
@@ -127,9 +131,11 @@ CREATE TABLE bmedia_schema.tag_category_join(
 -- Create other image tables
 CREATE TABLE bmedia_schema.nsfw_images AS TABLE bmedia_schema.art;
 CREATE TABLE bmedia_schema.nsfw_images_tags_join AS TABLE bmedia_schema.art_tags_join;
+CREATE INDEX nsfw_images_index ON bmedia_schema.nsfw_images(resolution_width, resolution_height, file_size_bytes);
 
 CREATE TABLE bmedia_schema.memes AS TABLE bmedia_schema.art;
 CREATE TABLE bmedia_schema.memes_tags_join AS TABLE bmedia_schema.art_tags_join;
+CREATE INDEX memes_index ON bmedia_schema.memes(resolution_width, resolution_height, file_size_bytes);
 
 -- Set permissions
 GRANT CREATE, CONNECT, TEMPORARY ON DATABASE bmedia TO bmedia_admin;
