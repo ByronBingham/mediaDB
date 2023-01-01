@@ -25,3 +25,7 @@ hs_err_pid*
 # IDE files
 *idea/
 *vscode/
+*venv/
+
+# exclude DeepDanbooru
+./DeepDanbooru/
