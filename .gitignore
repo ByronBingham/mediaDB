@@ -29,3 +29,6 @@ hs_err_pid*
 
 # exclude DeepDanbooru
 ./DeepDanbooru/
+
+# python cache
+*__pycache__/
