@@ -4,3 +4,11 @@ Database project to store personal data on local servers. The goal of this proje
 # Software Requirements
  - PostgreSQL v15.1
  - Java v16 (Adopt Open JDK)
+ - DeepDanbooru 1.0
+   - Cuda 11.2
+
+## Installing Python Requirements
+
+## DeepDanbooru
+To build DeepDanbooru...
+After building DeepDanbooru all Python dependencies, cd into `./DeepDanbooru` and run `pyhton ./setup.py install`. 

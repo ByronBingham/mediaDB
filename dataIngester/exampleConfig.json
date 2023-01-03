@@ -7,6 +7,7 @@
             ],
             "target_db": "ART",
             "auto_tag": true,
+            "tag_prob_thres": 0.6,
             "jfif_webm_to_jpg": true,
             "valid_extensions":[
                 ".png",
@@ -25,7 +26,11 @@
             "auto_tag": false,
             "jfif_webm_to_jpg": true,
             "valid_extensions":[
-                
+                ".png",
+                ".jpeg",
+                ".jpg",
+                ".jfif",
+                ".webp"
             ]
         }
     ],

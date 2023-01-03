@@ -9,6 +9,7 @@ import hashlib
 import psycopg2
 from PIL import Image
 from DBEnum import DBEnum
+from tagger import get_filtered_tags
 
 DB_NAME = "bmedia"
 
@@ -48,7 +49,7 @@ def process_group(group):
     global db_conn
     db_conn = psycopg2.connect(host=group.db_host, user=group.db_user, password=group.db_password, dbname=DB_NAME)
 
-    if group.target_db in [DBEnum.ART, DBEnum.NSFW_IMAGES]:
+    if group.target_db in [DBEnum.ART, DBEnum.NSFW_IMAGES, DBEnum.MEMES]:
         process_image_group(group)
     elif group.target_db in [DBEnum.VIDEOS]:
         process_video_group(group)
@@ -73,43 +74,54 @@ def process_image_group(group: ProcessingGroup):
     files = []
     for dir in group.source_dirs:
         files.extend(get_valid_files(path=dir, valid_extensions=group.valid_extensions))
-
-    # get the data ready for inserting into DB
+    
     values = []
+    tag_values = ""
+    tag_join_values = ""
     for file in files:
+        print("INFO: Processing image: " + str(file))
+        # get the data ready for inserting into DB
         file = file.replace("\\", "/")
-        values.append(get_image_data_for_db_insert(file))
+        query_vals, join_data = get_image_data_for_db_insert(file)
+        values.append(query_vals)
+
+        # get data ready for tags if specified
+        if group.auto_tag:
+            print("INFO: Processing tags for image: " + str(file))
+            tags = get_filtered_tags(file, group.tag_prob_thres)
+            for tag in tags:
+                # add tag to DB if not already existing
+                tag_values += f"('{tag}', false)," # default 'false' for nsfw. set manually after adding to DB
+                tag_join_values += f'(\'{join_data[0]}\', \'{join_data[1]}\', \'{tag}\'),'
 
     if len(values) < 1:
         print("WARNING: No valid files found")
         return
 
-    # send INSERT to DB
-    cursor = db_conn.cursor()
+    # send INSERT to DB for image files
     query = f'INSERT INTO {group.target_db.value} (md5, filename, file_path, resolution_width, resolution_height, file_size_bytes) VALUES '
     for value in values:
         query += value + ','
     query = query[:-1]
     query += ' ON CONFLICT (md5, filename) DO NOTHING;'
 
+    print("INFO: Applying changes from group " + group.name + " to Database")
+    do_query(query)
+    
+    if group.auto_tag:
+            tags_query = "INSERT INTO bmedia_schema.tags (tag_name, nsfw) VALUES " + tag_values[:-1] + " ON CONFLICT (tag_name) DO NOTHING;"
+            tag_join_query = f"INSERT INTO {group.target_db.value}_tags_join (md5, filename, tag_name) VALUES " + tag_join_values[:-1] + " ON CONFLICT (md5, filename, tag_name) DO NOTHING;"
+
+            do_query(tags_query)
+            do_query(tag_join_query)
+    print("INFO: Done processing group " + group.name)
+    
+
+def do_query(query: str):
+    cursor = db_conn.cursor()
     cursor.execute(query)
     db_conn.commit()
-
-    # add tag relations
-    # TODO: implement
-    """
-    if group.auto_tag:
-        for file in files:
-            tags = get_tags_for_image(file)
-    """
     cursor.close()
-
-
-def get_tags_for_image(file: Path):
-    """
-    Uses DeepDanbooru to get the tags for an image
-    """
-    return []
 
 def get_image_data_for_db_insert(file: Path):
     """
@@ -124,7 +136,7 @@ def get_image_data_for_db_insert(file: Path):
     filename = os.path.basename(file)
     full_path = os.path.abspath(file).replace("\\", "/")
 
-    return f'(\'{md5}\', \'{filename}\', \'{full_path}\', {resolution_width}, {resolution_height}, {file_size_bytes})'
+    return (f'(\'{md5}\', \'{filename}\', \'{full_path}\', {resolution_width}, {resolution_height}, {file_size_bytes})', (md5, filename))
 
 
 def process_video_group(group: ProcessingGroup):
@@ -183,8 +195,11 @@ if __name__ == "__main__":
     for group in config_groups_arr:
         group_db_enum = DBEnum[group['target_db']]
         auto_tag = False
-        if 'group_db_enum' in group.keys():
-            auto_tag = group['group_db_enum']
+        tag_prob_thres = 1.0
+        if 'auto_tag' in group.keys():
+            auto_tag = group['auto_tag']
+            if 'tag_prob_thres' in group.keys():
+                tag_prob_thres = group['tag_prob_thres']
         jfif_to_jpg = False
         if 'jfif_webm_to_jpg' in group.keys():
             jfif_webm_to_jpg = group['jfif_webm_to_jpg']
@@ -192,7 +207,7 @@ if __name__ == "__main__":
         group = ProcessingGroup(name=group['name'], source_dirs=group['source_dirs'],
                                 valid_extensions=group['valid_extensions'], target_db=group_db_enum, auto_tag=auto_tag,
                                 jfif_webm_to_jpg=jfif_webm_to_jpg, db_host=config['db_host'], db_user=config['db_user'],
-                                db_password=config['db_password'])
+                                db_password=config['db_password'], tag_prob_thres=tag_prob_thres)
         processing_groups.append(group)
 
     # process groups
