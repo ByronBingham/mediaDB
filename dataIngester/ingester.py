@@ -85,15 +85,6 @@ def process_image_group(group: ProcessingGroup):
         query_vals, join_data = get_image_data_for_db_insert(file)
         values.append(query_vals)
 
-        # get data ready for tags if specified
-        if group.auto_tag:
-            print("INFO: Processing tags for image: " + str(file))
-            tags = get_filtered_tags(file, group.tag_prob_thres)
-            for tag in tags:
-                # add tag to DB if not already existing
-                tag_values += f"('{tag}', false)," # default 'false' for nsfw. set manually after adding to DB
-                tag_join_values += f'(\'{join_data[0]}\', \'{join_data[1]}\', \'{tag}\'),'
-
     if len(values) < 1:
         print("WARNING: No valid files found")
         return
@@ -107,13 +98,39 @@ def process_image_group(group: ProcessingGroup):
 
     print("INFO: Applying changes from group " + group.name + " to Database")
     do_query(query)
-    
-    if group.auto_tag:
-            tags_query = "INSERT INTO bmedia_schema.tags (tag_name, nsfw) VALUES " + tag_values[:-1] + " ON CONFLICT (tag_name) DO NOTHING;"
-            tag_join_query = f"INSERT INTO {group.target_db.value}_tags_join (md5, filename, tag_name) VALUES " + tag_join_values[:-1] + " ON CONFLICT (md5, filename, tag_name) DO NOTHING;"
 
-            do_query(tags_query)
-            do_query(tag_join_query)
+    # get data ready for tags if specified
+    if group.auto_tag:
+        print("INFO: Processing tags for image: " + str(file))
+
+        # get tag data from DeepDanbooru
+        tags_out = get_filtered_tags(files, group.tag_prob_thres)
+
+        # get list of all tags found in this group
+        all_tags = []
+        for image_tags in list(tags_out.values()):
+            for tag, prob in image_tags:
+                all_tags.append(tag)
+
+
+
+        for tag in all_tags:
+            # add tag to DB if not already existing
+            tag_values += f"('{tag}', false)," # default 'false' for nsfw. set manually after adding to DB
+
+        for key in tags_out.keys():
+            filename = Path(key).name
+            tag_data = tags_out[key]
+            for tag, prob in tag_data:
+                md5 = get_md5_for_file(Path(key).resolve())
+                tag_join_values += f'(\'{md5}\', \'{filename}\', \'{tag}\'),'
+
+        tags_query = "INSERT INTO bmedia_schema.tags (tag_name, nsfw) VALUES " + tag_values[:-1] + " ON CONFLICT (tag_name) DO NOTHING;"
+        tag_join_query = f"INSERT INTO {group.target_db.value}_tags_join (md5, filename, tag_name) VALUES " + tag_join_values[:-1] + " ON CONFLICT (md5, filename, tag_name) DO NOTHING;"
+
+        do_query(tags_query)
+        do_query(tag_join_query)
+
     print("INFO: Done processing group " + group.name)
     
 
@@ -123,13 +140,17 @@ def do_query(query: str):
     db_conn.commit()
     cursor.close()
 
+def get_md5_for_file(path: Path):
+    file_data = open(path, "rb")
+    file_data = file_data.read()
+    return hashlib.md5(file_data).hexdigest()
+
+
 def get_image_data_for_db_insert(file: Path):
     """
     Creates a string that can be appended to the VALUES part of an INSERT query
     """
-    file_data = open(file, "rb")
-    file_data = file_data.read()
-    md5 = hashlib.md5(file_data).hexdigest()
+    md5 = get_md5_for_file(file)
     image = Image.open(file)
     resolution_width, resolution_height = image.size
     file_size_bytes = os.path.getsize(file)

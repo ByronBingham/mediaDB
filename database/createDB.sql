@@ -129,12 +129,12 @@ CREATE TABLE bmedia_schema.tag_category_join(
 );
 
 -- Create other image tables
-CREATE TABLE bmedia_schema.nsfw_images AS TABLE bmedia_schema.art;
-CREATE TABLE bmedia_schema.nsfw_images_tags_join AS TABLE bmedia_schema.art_tags_join;
+CREATE TABLE bmedia_schema.nsfw_images (LIKE bmedia_schema.art INCLUDING ALL);
+CREATE TABLE bmedia_schema.nsfw_images_tags_join (LIKE bmedia_schema.art_tags_join INCLUDING ALL);
 CREATE INDEX nsfw_images_index ON bmedia_schema.nsfw_images(resolution_width, resolution_height, file_size_bytes);
 
-CREATE TABLE bmedia_schema.memes AS TABLE bmedia_schema.art;
-CREATE TABLE bmedia_schema.memes_tags_join AS TABLE bmedia_schema.art_tags_join;
+CREATE TABLE bmedia_schema.memes (LIKE bmedia_schema.art INCLUDING ALL);
+CREATE TABLE bmedia_schema.memes_tags_join (LIKE bmedia_schema.art_tags_join INCLUDING ALL);
 CREATE INDEX memes_index ON bmedia_schema.memes(resolution_width, resolution_height, file_size_bytes);
 
 -- Set permissions
