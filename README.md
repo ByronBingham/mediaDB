@@ -4,6 +4,7 @@ Database project to store personal data on local servers. The goal of this proje
 # Software Requirements
  - PostgreSQL v15.1
  - Java v16 (Adopt Open JDK)
+ - PostgreSQL JDBC Driver 42.5.1
  - DeepDanbooru 1.0
    - Cuda 11.2
 
