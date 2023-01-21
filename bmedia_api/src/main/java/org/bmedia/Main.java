@@ -1,5 +1,9 @@
 package org.bmedia;
 
+import org.apache.commons.codec.binary.Base64OutputStream;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.imgscalr.Scalr;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.HttpStatus;
@@ -8,8 +12,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Optional;
 
 @SpringBootApplication
 @RestController
@@ -44,15 +56,25 @@ public class Main {
     public ResponseEntity<String> search_images_by_tag_page(@RequestParam("tags") String[] tags,
                                                             @RequestParam("page_num") int pageNum,
                                                             @RequestParam("results_per_page") int resultsPerPage,
-                                                            @RequestParam("include_thumb") boolean includeThumb) {
+                                                            @RequestParam("include_thumb") Optional<Boolean> includeThumb,
+                                                            @RequestParam("thumb_height") Optional<Integer> thumbHeight) {
 
-        // TODO: add base64 encoded thumbnail to return JSON
+        boolean includeThumbVal = includeThumb.orElse(false);
+        int thumbHeightVal = thumbHeight.orElse(400);
+
+
+
         String tag_string = "'" + String.join("','", tags) + "'";
         int numTags = tags.length;
+        String includePatString = "";
+
+        if(includeThumbVal) {
+            includePatString = ",a.file_path";
+        }
 
         // for reference: https://elliotchance.medium.com/handling-tags-in-a-sql-database-5597b9894049
-        String query = "SELECT a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes FROM " +
-                "bmedia_schema.art a JOIN bmedia_schema.art_tags_join at ON (a.md5, a.filename) = (at.md5, at.filename) " +
+        String query = "SELECT a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
+                " FROM bmedia_schema.art a JOIN bmedia_schema.art_tags_join at ON (a.md5, a.filename) = (at.md5, at.filename) " +
                 "WHERE at.tag_name IN (" + tag_string + ") " +
                 "GROUP BY (a.md5, a.filename) HAVING COUNT(at.tag_name) >= " + numTags +
                 " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage + ";";
@@ -75,8 +97,36 @@ public class Main {
                         "\"filename\": \"" + filename + "\"," +
                         "\"resolution_width\": " + resolutionWidth + "," +
                         "\"resolution_height\": " + resolutionHeight + "," +
-                        "\"file_size_bytes\": " +fileSizeBytes +
-                        "}";
+                        "\"file_size_bytes\": " +fileSizeBytes;
+
+                if(includeThumbVal) {
+                    String imagePath = result.getString("file_path");
+                    ByteArrayOutputStream boas = new ByteArrayOutputStream();
+                    String imgExt = FilenameUtils.getExtension(imagePath);
+                    try {
+                        BufferedImage img = ImageIO.read(new File(imagePath));
+                        BufferedImage imgSmall = Scalr.resize(img, Scalr.Method.BALANCED, Scalr.Mode.FIT_TO_HEIGHT,
+                                thumbHeightVal, thumbHeightVal, Scalr.OP_ANTIALIAS);
+
+                        // convert image to jpg compatible format if necessary
+                        if(imgExt.equals("png")){
+                            BufferedImage newBufferedImage = new BufferedImage(imgSmall.getWidth(), imgSmall.getHeight(),
+                                    BufferedImage.TYPE_INT_RGB);
+                            newBufferedImage.createGraphics().drawImage(imgSmall,0,0, Color.WHITE, null);
+                            imgSmall = newBufferedImage;
+                        }
+                        if(!ImageIO.write(imgSmall, "jpg", boas)){
+                            System.out.println("WARNING: Failed to write image to buffer for b64 encoding.");
+                        }
+                    } catch(IOException e){
+                        System.out.println("ERROR: IO error while trying to encode image. \n" + e.getMessage());
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("FILE IO error");
+                    }
+                    String encodedString = Base64.getEncoder().encodeToString(boas.toByteArray());
+                    jsonEntry += "\n,\"thumb_base64\": \"" + encodedString + "\",";
+                }
+
+                jsonEntry += "}";
                 jsonEntries.add(jsonEntry);
             }
             jsonOut += String.join(",", jsonEntries);
@@ -87,4 +137,5 @@ public class Main {
 
         return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
     }
+
 }
