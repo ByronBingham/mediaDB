@@ -1,13 +1,13 @@
 package org.bmedia;
 
-import org.apache.commons.codec.binary.Base64OutputStream;
-import org.apache.commons.io.FileUtils;
+
 import org.apache.commons.io.FilenameUtils;
 import org.imgscalr.Scalr;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,6 +25,7 @@ import java.util.Optional;
 
 @SpringBootApplication
 @RestController
+@CrossOrigin(origins = "*")
 public class Main {
 
     private static Connection dbconn = null;
@@ -63,12 +64,11 @@ public class Main {
         int thumbHeightVal = thumbHeight.orElse(400);
 
 
-
         String tag_string = "'" + String.join("','", tags) + "'";
         int numTags = tags.length;
         String includePatString = "";
 
-        if(includeThumbVal) {
+        if (includeThumbVal) {
             includePatString = ",a.file_path";
         }
 
@@ -85,7 +85,7 @@ public class Main {
             ResultSet result = statement.executeQuery(query);
 
             ArrayList<String> jsonEntries = new ArrayList<>();
-            while(result.next()){
+            while (result.next()) {
                 String md5 = result.getString("md5");
                 String filename = result.getString("filename");
                 int resolutionWidth = result.getInt("resolution_width");
@@ -97,9 +97,9 @@ public class Main {
                         "\"filename\": \"" + filename + "\"," +
                         "\"resolution_width\": " + resolutionWidth + "," +
                         "\"resolution_height\": " + resolutionHeight + "," +
-                        "\"file_size_bytes\": " +fileSizeBytes;
+                        "\"file_size_bytes\": " + fileSizeBytes;
 
-                if(includeThumbVal) {
+                if (includeThumbVal) {
                     String imagePath = result.getString("file_path");
                     ByteArrayOutputStream boas = new ByteArrayOutputStream();
                     String imgExt = FilenameUtils.getExtension(imagePath);
@@ -109,21 +109,21 @@ public class Main {
                                 thumbHeightVal, thumbHeightVal, Scalr.OP_ANTIALIAS);
 
                         // convert image to jpg compatible format if necessary
-                        if(imgExt.equals("png")){
+                        if (imgExt.equals("png")) {
                             BufferedImage newBufferedImage = new BufferedImage(imgSmall.getWidth(), imgSmall.getHeight(),
                                     BufferedImage.TYPE_INT_RGB);
-                            newBufferedImage.createGraphics().drawImage(imgSmall,0,0, Color.WHITE, null);
+                            newBufferedImage.createGraphics().drawImage(imgSmall, 0, 0, Color.WHITE, null);
                             imgSmall = newBufferedImage;
                         }
-                        if(!ImageIO.write(imgSmall, "jpg", boas)){
+                        if (!ImageIO.write(imgSmall, "jpg", boas)) {
                             System.out.println("WARNING: Failed to write image to buffer for b64 encoding.");
                         }
-                    } catch(IOException e){
+                    } catch (IOException e) {
                         System.out.println("ERROR: IO error while trying to encode image. \n" + e.getMessage());
                         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("FILE IO error");
                     }
                     String encodedString = Base64.getEncoder().encodeToString(boas.toByteArray());
-                    jsonEntry += "\n,\"thumb_base64\": \"" + encodedString + "\",";
+                    jsonEntry += "\n,\"thumb_base64\": \"" + encodedString + "\"";
                 }
 
                 jsonEntry += "}";
@@ -131,7 +131,7 @@ public class Main {
             }
             jsonOut += String.join(",", jsonEntries);
             jsonOut += "]";
-        } catch (SQLException e){
+        } catch (SQLException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
         }
 
