@@ -101,29 +101,11 @@ public class Main {
 
                 if (includeThumbVal) {
                     String imagePath = result.getString("file_path");
-                    ByteArrayOutputStream boas = new ByteArrayOutputStream();
-                    String imgExt = FilenameUtils.getExtension(imagePath);
-                    try {
-                        BufferedImage img = ImageIO.read(new File(imagePath));
-                        BufferedImage imgSmall = Scalr.resize(img, Scalr.Method.BALANCED, Scalr.Mode.FIT_TO_HEIGHT,
-                                thumbHeightVal, thumbHeightVal, Scalr.OP_ANTIALIAS);
-
-                        // convert image to jpg compatible format if necessary
-                        if (imgExt.equals("png")) {
-                            BufferedImage newBufferedImage = new BufferedImage(imgSmall.getWidth(), imgSmall.getHeight(),
-                                    BufferedImage.TYPE_INT_RGB);
-                            newBufferedImage.createGraphics().drawImage(imgSmall, 0, 0, Color.WHITE, null);
-                            imgSmall = newBufferedImage;
-                        }
-                        if (!ImageIO.write(imgSmall, "jpg", boas)) {
-                            System.out.println("WARNING: Failed to write image to buffer for b64 encoding.");
-                        }
-                    } catch (IOException e) {
-                        System.out.println("ERROR: IO error while trying to encode image. \n" + e.getMessage());
+                    String b64Thumb = getThumbnailForImage(imagePath, thumbHeightVal);
+                    if(b64Thumb == null){
                         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("FILE IO error");
                     }
-                    String encodedString = Base64.getEncoder().encodeToString(boas.toByteArray());
-                    jsonEntry += "\n,\"thumb_base64\": \"" + encodedString + "\"";
+                    jsonEntry += "\n,\"thumb_base64\": \"" + b64Thumb + "\"";
                 }
 
                 jsonEntry += "}";
@@ -136,6 +118,65 @@ public class Main {
         }
 
         return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
+    }
+
+    @RequestMapping(value = "/images/get_thumbnail", produces = "application/json")
+    public ResponseEntity<String> get_image_thumbnail(@RequestParam("md5") String md5,
+                                                      @RequestParam("filename") String filename,
+                                                      @RequestParam("thumb_height") Optional<Integer> thumbHeight){
+        int thumbHeightVal = thumbHeight.orElse(400);
+
+        String query = "SELECT file_path FROM bmedia_schema.art WHERE md5='" + md5 + "' AND filename='" + filename + "';";
+
+        String b64Thumb = null;
+        try{
+            Statement statement = dbconn.createStatement();
+            ResultSet result = statement.executeQuery(query);
+
+            if(!result.next()){
+                ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error: no results returned");
+            }
+
+            String filePath = result.getString("file_path");
+            b64Thumb = getThumbnailForImage(filePath, thumbHeightVal);
+            if(b64Thumb == null){
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error: no results returned from query");
+            }
+
+        } catch (SQLException e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
+        }
+
+        String jsonOut = "{\n\"thumb_base64\": \"" + b64Thumb + "\"\n}";
+
+        return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
+    }
+
+    private String getThumbnailForImage(String imagePath, int thumbHeight){
+
+        ByteArrayOutputStream boas = new ByteArrayOutputStream();
+        String imgExt = FilenameUtils.getExtension(imagePath);
+        try {
+            BufferedImage img = ImageIO.read(new File(imagePath));
+            BufferedImage imgSmall = Scalr.resize(img, Scalr.Method.BALANCED, Scalr.Mode.FIT_TO_HEIGHT,
+                    thumbHeight, thumbHeight, Scalr.OP_ANTIALIAS);
+
+            // convert image to jpg compatible format if necessary
+            if (imgExt.equals("png")) {
+                BufferedImage newBufferedImage = new BufferedImage(imgSmall.getWidth(), imgSmall.getHeight(),
+                        BufferedImage.TYPE_INT_RGB);
+                newBufferedImage.createGraphics().drawImage(imgSmall, 0, 0, Color.WHITE, null);
+                imgSmall = newBufferedImage;
+            }
+            if (!ImageIO.write(imgSmall, "jpg", boas)) {
+                System.out.println("WARNING: Failed to write image to buffer for b64 encoding.");
+            }
+        } catch (IOException e) {
+            System.out.println("ERROR: IO error while trying to encode image. \n" + e.getMessage());
+            return null;
+        }
+        return Base64.getEncoder().encodeToString(boas.toByteArray());
+
     }
 
 }

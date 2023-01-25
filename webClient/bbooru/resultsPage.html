@@ -1,26 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8">
-		<meta charset="UTF-8">
-		<title>BBooru | Custom image browser</title>
-</head>
-<body>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <title>BBooru | Custom image browser</title>
+    <script src="templates.js" type="module"></script>
     <script src="resultsPage.js"></script>
     <script src="../constants.js"></script>
+</head>
+<body>
     <link rel="stylesheet" href="../bbooru.css">
-    <br><br><br>
+    <br>
     <script>
-        console.log("hi");
         onDocLoad();
     </script>
-    <div>			
+    <div style="margin-left:1vw">
         <form action="javascript:getResults()">
             <input id="tags-search" name="tags" type="text" placeholder="Ex: blue_sky cloud 1girl">
             <input name="commit" type="submit" value="Search"><br><br>
         </form>
     </div>
-    <div>
-        <p id="test"></p>
+    <div id="results-div">
+        <result-page></result-page>
     </div>
 </body></html>
