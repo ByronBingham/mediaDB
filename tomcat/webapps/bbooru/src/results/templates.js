@@ -1,9 +1,12 @@
-//import { LitElement, html } from 'https://unpkg.com/lit-element/lit-element.js?module';
+import { LitElement, html } from 'lit-element';
 
-class ResultPageElement extends LitElement {
+export class ResultPageElement extends LitElement {
 
-    constructor(){
-        this.imageData = "";
+    constructor(md5, filename, b64image){
+        super();
+        this.md5 = md5;
+        this.filename = filename;
+        this.imageData = b64image;
     }
 
     render(){
@@ -14,12 +17,16 @@ class ResultPageElement extends LitElement {
 
 }
 
-class ResultsPage extends LitElement {
+export class ResultsPage extends LitElement {
     constructor(){
+        super();
         this.resultElements = [];
     }
 
-
+    addResultElement(resEl){
+        this.resultElements.push(resEl);
+        this.requestUpdate();
+    }
 
     render(){
         return html`<div>

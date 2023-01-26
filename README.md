@@ -6,7 +6,8 @@ Database project to store personal data on local servers. The goal of this proje
  - Java v16 (Adopt Open JDK)
  - PostgreSQL JDBC Driver 42.5.1
  - DeepDanbooru 1.0
-   - Cuda 11.2
+   - Cuda v11.2
+ - NodeJS v18.13.0
 
 ## Installing Python Requirements
 

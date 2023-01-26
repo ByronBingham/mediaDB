@@ -1,0 +1,1 @@
+goToResults=function(){tags=document.getElementById("tags-search").value.split(" "),filteredTags=[],tags.forEach((t=>{""!==t&&filteredTags.push(t)})),tagsString=filteredTags.join(","),window.location="/bbooru/resultsPage.html?search="+tagsString};

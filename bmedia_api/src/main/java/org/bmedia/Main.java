@@ -147,7 +147,10 @@ public class Main {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
         }
 
-        String jsonOut = "{\n\"thumb_base64\": \"" + b64Thumb + "\"\n}";
+        String jsonOut = "{" +
+                "\"md5\": \"" + md5 + "\"," +
+                "\"filename\": \"" + filename + "\"," +
+                "\n\"thumb_base64\": \"" + b64Thumb + "\"\n}";
 
         return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
     }
