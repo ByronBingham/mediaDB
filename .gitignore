@@ -41,3 +41,7 @@ tomcat/logs/*
 
 # npm
 *node_modules/
+
+# test data
+test_data/anime_art/*
+test_data/memes/*
