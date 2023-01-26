@@ -40,4 +40,4 @@ hs_err_pid*
 tomcat/logs/*
 
 # npm
-*node_modules/*
+*node_modules/
