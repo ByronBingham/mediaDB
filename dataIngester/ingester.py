@@ -90,11 +90,11 @@ def process_image_group(group: ProcessingGroup):
         return
 
     # send INSERT to DB for image files
-    query = f'INSERT INTO {group.target_db.value} (md5, filename, file_path, resolution_width, resolution_height, file_size_bytes) VALUES '
+    query = f'INSERT INTO {group.target_db.value} (md5, filename, file_path, resolution_width, resolution_height, file_size_bytes) VALUES \n'
     for value in values:
-        query += value + ','
-    query = query[:-1]
-    query += ' ON CONFLICT (md5, filename) DO NOTHING;'
+        query += value + ',\n'
+    query = query[:-2]
+    query += '\n ON CONFLICT (md5, filename) DO NOTHING;'
 
     print("INFO: Applying changes from group " + group.name + " to Database")
     do_query(query)
@@ -116,17 +116,19 @@ def process_image_group(group: ProcessingGroup):
 
         for tag in all_tags:
             # add tag to DB if not already existing
-            tag_values += f"('{tag}', false)," # default 'false' for nsfw. set manually after adding to DB
+            cleaned_tag = tag.replace('\'','\'\'' )
+            tag_values += f"('{cleaned_tag}', false),\n" # default 'false' for nsfw. set manually after adding to DB
 
         for key in tags_out.keys():
             filename = Path(key).name
             tag_data = tags_out[key]
             for tag, prob in tag_data:
                 md5 = get_md5_for_file(Path(key).resolve())
-                tag_join_values += f'(\'{md5}\', \'{filename}\', \'{tag}\'),'
+                cleaned_tag = tag.replace('\'','\'\'' )
+                tag_join_values += f'(\'{md5}\', \'{filename}\', \'{cleaned_tag}\'),\n'
 
-        tags_query = "INSERT INTO bmedia_schema.tags (tag_name, nsfw) VALUES " + tag_values[:-1] + " ON CONFLICT (tag_name) DO NOTHING;"
-        tag_join_query = f"INSERT INTO {group.target_db.value}_tags_join (md5, filename, tag_name) VALUES " + tag_join_values[:-1] + " ON CONFLICT (md5, filename, tag_name) DO NOTHING;"
+        tags_query = "INSERT INTO bmedia_schema.tags (tag_name, nsfw) VALUES \n" + tag_values[:-2] + "\n ON CONFLICT (tag_name) DO NOTHING;"
+        tag_join_query = f"INSERT INTO {group.target_db.value}_tags_join (md5, filename, tag_name) VALUES \n" + tag_join_values[:-2] + "\n ON CONFLICT (md5, filename, tag_name) DO NOTHING;"
 
         do_query(tags_query)
         do_query(tag_join_query)
@@ -136,6 +138,11 @@ def process_image_group(group: ProcessingGroup):
 
 def do_query(query: str):
     cursor = db_conn.cursor()
+    file_tmp = open("./tmp_out.txt", 'w')
+    file_tmp.write("--------------------------------------------------------------------------------------------")
+    file_tmp.write(query)
+    file_tmp.write("--------------------------------------------------------------------------------------------")
+    file_tmp.close()
     cursor.execute(query)
     db_conn.commit()
     cursor.close()
