@@ -7,13 +7,25 @@ def run_deepdanbooru(image_paths) -> str:
     exe_path = exe_path.replace("\\", "/")
     path_string = "\"" + ("\" \"".join(image_paths)).replace("\\\\", "/").replace("\\", "/") + "\""
     cmd = [exe_path, "-m", "deepdanbooru", "evaluate", "--project-path", "./DeepDanbooru", "--allow-gpu"] + image_paths
-    print(cmd)
     process = Popen(cmd, stdout=PIPE, stderr=PIPE)
-    stdout, stderr = process.communicate()
+    try:
+        stdout, stderr = process.communicate()
+    except Exception as e:
+        print("ERROR: Error encountered running DeepDanbooru")
+        print("ERROR: MESSAGE: \n" + str(e))
+        print("DEBUG: DD was run with these files:")
+        for path in image_paths:
+            print("    " + str(path))
+
     if stderr != b'':
         stderr_string = stderr.decode('utf-8')
         if "Cleanup called" in stderr_string:
             print("DEBUG: Cleanup called in DeepDanbooru")
+        elif "can't encode character" in stderr_string:
+            print("ERROR: Something couldn't be encoded")
+            print("DEBUG: DD was run with these files:")
+            for path in image_paths:
+                print("    " + str(path))
         else:
             print("ERROR: " + stderr.decode('utf-8'))
     return stdout

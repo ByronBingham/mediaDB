@@ -241,7 +241,7 @@ public class Main {
                 return null;
             }
         } catch (IOException e) {
-            System.out.println("ERROR: IO error while trying to encode image. \n" + e.getMessage());
+            System.out.println("ERROR: IO error while trying to encode image" + imagePath + ". \n" + e.getMessage());
             return null;
         }
         return Base64.getEncoder().encodeToString(boas.toByteArray());
@@ -258,7 +258,7 @@ public class Main {
                 return null;
             }
         } catch (IOException e){
-            System.out.println("ERROR: IO error while trying to encode image. \n" + e.getMessage());
+            System.out.println("ERROR: IO error while trying to encode image " + imagePath + ". \n" + e.getMessage());
             return null;
         }
         return Base64.getEncoder().encodeToString(boas.toByteArray());

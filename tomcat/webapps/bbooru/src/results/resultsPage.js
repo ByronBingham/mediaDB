@@ -43,7 +43,6 @@ const sendSearchRequest = function(tagsString){
     console.log("Request: " + requestString);
 
     // send request
-    console.log("sending request")
     fetch(requestString).then((response) =>{
         return response.json();
     }

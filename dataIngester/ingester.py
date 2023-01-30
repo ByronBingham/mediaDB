@@ -1,4 +1,5 @@
 import glob
+import math
 from multiprocessing import Pool
 import os
 import sys
@@ -28,15 +29,15 @@ def get_valid_files(path: str, valid_extensions: list, jfif_webm_to_jpg: bool = 
         print("ERROR: the specified path is not a directory")
         return []
 
-    for file in glob.glob(str(path) + "**/*", recursive=True):
+    for file in Path(path).rglob('*'):
         file_path = Path(file)
         if os.path.isfile(file) and file_path.suffix in valid_extensions:
 
             if jfif_webm_to_jpg and file_path.suffix() in ['.jfif', '.webp']:
                 file_path = file_path.rename(file_path.with_suffix('.jpg'))
-                files.append(os.path.abspath(file_path))
+                files.append(str(os.path.abspath(file_path)))
             else:
-                files.append(file)
+                files.append(str(file))
 
     return files
 
@@ -71,81 +72,118 @@ def process_image_group(group: ProcessingGroup):
     """
     Process a group of image files
     """
+
     files = []
     for dir in group.source_dirs:
         files.extend(get_valid_files(path=dir, valid_extensions=group.valid_extensions))
-    
-    values = []
-    tag_values = ""
-    tag_join_values = ""
+
+    print("INFO: Found " + str(len(files)) + " files")
+
+    # check if any of the files are already in the database
+    newFiles = []
     for file in files:
-        print("INFO: Processing image: " + str(file))
-        # get the data ready for inserting into DB
-        file = file.replace("\\", "/")
-        query_vals, join_data = get_image_data_for_db_insert(file)
-        values.append(query_vals)
+        path = Path(file)
+        md5 = get_md5_for_file(path.resolve())
+        filename = path.name
 
-    if len(values) < 1:
-        print("WARNING: No valid files found")
-        return
+        query = f'SELECT md5, filename FROM {group.target_db.value} WHERE md5 = \'{md5}\' AND filename = \'{filename}\';'
+        result = do_query(query=query)
 
-    # send INSERT to DB for image files
-    query = f'INSERT INTO {group.target_db.value} (md5, filename, file_path, resolution_width, resolution_height, file_size_bytes) VALUES \n'
-    for value in values:
-        query += value + ',\n'
-    query = query[:-2]
-    query += '\n ON CONFLICT (md5, filename) DO NOTHING;'
+        if len(result) < 1:
+            newFiles.append(file)
+            
+    files = newFiles
+    print("INFO: Processing " + str(len(files)) + " new files")
 
-    print("INFO: Applying changes from group " + group.name + " to Database")
-    do_query(query)
+    chunk_size = group.chunk_size
+    if chunk_size < 1:
+        chunk_size = len(files)
+    
+    # proccess chunks of files
+    current_chunk = 1
+    total_chunks = math.ceil(len(files) / chunk_size)
+    for i in range(0, len(files), chunk_size):
+        end_index = i + chunk_size
+        if end_index > len(files) - 1:
+            end_index = len(files) - 1
+        files_chunk = files[i:end_index + 1] # end of list range is exclusive
+        values = []
+        tag_values = ""
+        tag_join_values = ""
+        for file in files_chunk:
+            # get the data ready for inserting into DB
+            file = file.replace("\\", "/")
+            query_vals, join_data = get_image_data_for_db_insert(file)
+            values.append(query_vals)
 
-    # get data ready for tags if specified
-    if group.auto_tag:
-        print("INFO: Processing tags for image: " + str(file))
+        if len(values) < 1:
+            print("WARNING: No valid files found")
+            return
 
-        # get tag data from DeepDanbooru
-        tags_out = get_filtered_tags(files, group.tag_prob_thres)
+        # send INSERT to DB for image files
+        query = f'INSERT INTO {group.target_db.value} (md5, filename, file_path, resolution_width, resolution_height, file_size_bytes) VALUES \n'
+        for value in values:
+            query += value + ',\n'
+        query = query[:-2]
+        query += '\n ON CONFLICT (md5, filename) DO NOTHING;'
 
-        # get list of all tags found in this group
-        all_tags = []
-        for image_tags in list(tags_out.values()):
-            for tag, prob in image_tags:
-                all_tags.append(tag)
+        print("INFO: Applying changes from group " + group.name + " to Database")
+        do_query(query)
 
+        # get data ready for tags if specified
+        if group.auto_tag:
+            print("INFO: Processing tags for images")
 
+            # get tag data from DeepDanbooru
+            tags_out = get_filtered_tags(files_chunk, group.tag_prob_thres)
 
-        for tag in all_tags:
-            # add tag to DB if not already existing
-            cleaned_tag = tag.replace('\'','\'\'' )
-            tag_values += f"('{cleaned_tag}', false),\n" # default 'false' for nsfw. set manually after adding to DB
+            # get list of all tags found in this group
+            all_tags = []
+            for image_tags in list(tags_out.values()):
+                for tag, prob in image_tags:
+                    all_tags.append(tag)
 
-        for key in tags_out.keys():
-            filename = Path(key).name
-            tag_data = tags_out[key]
-            for tag, prob in tag_data:
-                md5 = get_md5_for_file(Path(key).resolve())
+            for tag in all_tags:
+                # add tag to DB if not already existing
                 cleaned_tag = tag.replace('\'','\'\'' )
-                tag_join_values += f'(\'{md5}\', \'{filename}\', \'{cleaned_tag}\'),\n'
+                tag_values += f"('{cleaned_tag}', false),\n" # default 'false' for nsfw. set manually after adding to DB
 
-        tags_query = "INSERT INTO bmedia_schema.tags (tag_name, nsfw) VALUES \n" + tag_values[:-2] + "\n ON CONFLICT (tag_name) DO NOTHING;"
-        tag_join_query = f"INSERT INTO {group.target_db.value}_tags_join (md5, filename, tag_name) VALUES \n" + tag_join_values[:-2] + "\n ON CONFLICT (md5, filename, tag_name) DO NOTHING;"
+            for key in tags_out.keys():
+                filename = Path(key).name
+                tag_data = tags_out[key]
+                for tag, prob in tag_data:
+                    md5 = get_md5_for_file(Path(key).resolve())
+                    cleaned_tag = tag.replace('\'','\'\'' )
+                    tag_join_values += f'(\'{md5}\', \'{filename}\', \'{cleaned_tag}\'),\n'
 
-        do_query(tags_query)
-        do_query(tag_join_query)
+            tags_query = "INSERT INTO bmedia_schema.tags (tag_name, nsfw) VALUES \n" + tag_values[:-2] + "\n ON CONFLICT (tag_name) DO NOTHING;"
+            tag_join_query = f"INSERT INTO {group.target_db.value}_tags_join (md5, filename, tag_name) VALUES \n" + tag_join_values[:-2] + "\n ON CONFLICT (md5, filename, tag_name) DO NOTHING;"
+
+            do_query(tags_query)
+            do_query(tag_join_query)
+        print("INFO: Done processing chunk " + str(current_chunk) + "/" + str(total_chunks))
+        current_chunk += 1
 
     print("INFO: Done processing group " + group.name)
     
 
 def do_query(query: str):
     cursor = db_conn.cursor()
+    '''
     file_tmp = open("./tmp_out.txt", 'w')
     file_tmp.write("--------------------------------------------------------------------------------------------")
     file_tmp.write(query)
     file_tmp.write("--------------------------------------------------------------------------------------------")
     file_tmp.close()
+    '''
     cursor.execute(query)
+    result = None
+    if cursor.description != None:
+        result = cursor.fetchall()
     db_conn.commit()
     cursor.close()
+
+    return result
 
 def get_md5_for_file(path: Path):
     file_data = open(path, "rb")
@@ -220,6 +258,7 @@ if __name__ == "__main__":
     # Create processing groups from config
     config_groups_arr = config['ingest_groups']
     processing_groups = []
+    chunk_size = config["chunk_size"]
     for group in config_groups_arr:
         group_db_enum = DBEnum[group['target_db']]
         auto_tag = False
@@ -235,7 +274,7 @@ if __name__ == "__main__":
         group = ProcessingGroup(name=group['name'], source_dirs=group['source_dirs'],
                                 valid_extensions=group['valid_extensions'], target_db=group_db_enum, auto_tag=auto_tag,
                                 jfif_webm_to_jpg=jfif_webm_to_jpg, db_host=config['db_host'], db_user=config['db_user'],
-                                db_password=config['db_password'], tag_prob_thres=tag_prob_thres)
+                                db_password=config['db_password'], tag_prob_thres=tag_prob_thres, chunk_size=chunk_size)
         processing_groups.append(group)
 
     # process groups
