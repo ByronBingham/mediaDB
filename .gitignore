@@ -47,4 +47,4 @@ test_data/anime_art/*
 test_data/memes/*
 
 # webpack build files
-**dist/**
+*dist/
