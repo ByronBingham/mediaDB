@@ -1,4 +1,4 @@
-import {ResultPageElement, ResultsPage} from './templates';
+import {ResultPageElement, ResultsPage} from './resultsTemplates';
 import {apiAddr, default_images_per_page} from '../constants';
 
 var resultPage = undefined;
@@ -10,20 +10,6 @@ window.onDocLoad = function(){
     if(searchString){
         sendSearchRequest(searchString);
     }
-}
-
-window.goToResults = function() {
-    // get tags
-    let tags = document.getElementById("tags-search").value.split(' ');
-    let filteredTags = [];
-    tags.forEach(tag => {
-        if(tag !== ''){
-            filteredTags.push(tag);
-        }
-    });
-    let tagsString = filteredTags.join(',');
-
-    window.location=`/bbooru/resultsPage.html?search=` + tagsString;
 }
 
 const handThumbResponse = function(data){

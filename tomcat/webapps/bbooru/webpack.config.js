@@ -1,9 +1,12 @@
 const path = require('path');
 
 module.exports = {
+  mode: 'development',
   entry: {
     index: ['./src/bbooru.js'],
-    results: ['./src/results/resultsPage.js']
+    global: ['./src/globalTemplates.js'],
+    results: ['./src/results/resultsPage.js'],
+    viewer: ['./src/viewer/viewer.js']
   },
   output: {
     filename: '[name].js',

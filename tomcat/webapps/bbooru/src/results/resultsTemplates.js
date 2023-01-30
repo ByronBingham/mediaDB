@@ -9,9 +9,14 @@ export class ResultPageElement extends LitElement {
         this.imageData = b64image;
     }
 
+    openImage(){
+        console.log("Opening Image with md5=" + this.md5 + " and filename=" + this.filename);
+        window.location = `/bbooru/imagePage.html?md5=${this.md5}&filename=${this.filename}`;
+    }
+
     render(){
         return html`<div>
-            <img src="data:image/jpg;base64,${this.imageData}" alt="image" />
+            <img src="data:image/jpg;base64,${this.imageData}" alt="image" @click=${this.openImage}/>
         </div>`
     }
 
@@ -34,6 +39,7 @@ export class ResultsPage extends LitElement {
         </div>`
     }
 }
+
 
 customElements.define('result-page-element', ResultPageElement);
 customElements.define('result-page', ResultsPage);

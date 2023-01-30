@@ -155,6 +155,39 @@ public class Main {
         return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
     }
 
+    @RequestMapping(value = "/images/get_image_full", produces = "application/json")
+    public ResponseEntity<String> get_image_full(@RequestParam("md5") String md5,
+                                                      @RequestParam("filename") String filename){
+
+        String query = "SELECT file_path FROM bmedia_schema.art WHERE md5='" + md5 + "' AND filename='" + filename + "';";
+
+        String b64Image = null;
+        try{
+            Statement statement = dbconn.createStatement();
+            ResultSet result = statement.executeQuery(query);
+
+            if(!result.next()){
+                ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error: no results returned");
+            }
+
+            String filePath = result.getString("file_path");
+            b64Image = getFullImage_b64(filePath);
+            if(b64Image == null){
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error: no results returned from query");
+            }
+
+        } catch (SQLException e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
+        }
+
+        String jsonOut = "{" +
+                "\"md5\": \"" + md5 + "\"," +
+                "\"filename\": \"" + filename + "\"," +
+                "\n\"image_base64\": \"" + b64Image + "\"\n}";
+
+        return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
+    }
+
     private String getThumbnailForImage(String imagePath, int thumbHeight){
 
         ByteArrayOutputStream boas = new ByteArrayOutputStream();
@@ -172,7 +205,8 @@ public class Main {
                 imgSmall = newBufferedImage;
             }
             if (!ImageIO.write(imgSmall, "jpg", boas)) {
-                System.out.println("WARNING: Failed to write image to buffer for b64 encoding.");
+                System.out.println("ERROR: Failed to write image to buffer for b64 encoding.");
+                return null;
             }
         } catch (IOException e) {
             System.out.println("ERROR: IO error while trying to encode image. \n" + e.getMessage());
@@ -180,6 +214,22 @@ public class Main {
         }
         return Base64.getEncoder().encodeToString(boas.toByteArray());
 
+    }
+
+    private String getFullImage_b64(String imagePath){
+        ByteArrayOutputStream boas = new ByteArrayOutputStream();
+        try {
+            BufferedImage img = ImageIO.read(new File(imagePath));
+            String extension = FilenameUtils.getExtension(imagePath);
+            if (!ImageIO.write(img, extension, boas)) {
+                System.out.println("ERROR: Failed to write image to buffer for b64 encoding.");
+                return null;
+            }
+        } catch (IOException e){
+            System.out.println("ERROR: IO error while trying to encode image. \n" + e.getMessage());
+            return null;
+        }
+        return Base64.getEncoder().encodeToString(boas.toByteArray());
     }
 
 }
