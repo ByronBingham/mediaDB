@@ -188,6 +188,38 @@ public class Main {
         return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
     }
 
+    @RequestMapping(value = "/images/get_tags", produces = "application/json")
+    public ResponseEntity<String> get_image_tags(@RequestParam("md5") String md5,
+                                                 @RequestParam("filename") String filename) {
+
+        // for reference: https://elliotchance.medium.com/handling-tags-in-a-sql-database-5597b9894049
+        String query = "SELECT at.tag_name, t.nsfw FROM bmedia_schema.tags t " +
+                "JOIN bmedia_schema.art_tags_join at ON t.tag_name = at.tag_name " +
+                "WHERE at.md5='" + md5 + "' AND at.filename='" + filename + "';";
+
+        String jsonOut = "[";
+        try {
+            Statement statement = dbconn.createStatement();
+            ResultSet result = statement.executeQuery(query);
+
+            ArrayList<String> jsonEntries = new ArrayList<>();
+            while (result.next()) {
+                String tag_name = result.getString("tag_name");
+                Boolean nsfw = result.getBoolean("nsfw");
+
+                String jsonEntry = "{" +
+                        "\"tag_name\": \"" + tag_name + "\"," +
+                        "\"nsfw\": " + nsfw + "}";
+                jsonEntries.add(jsonEntry);
+            }
+            jsonOut += String.join(",", jsonEntries);
+            jsonOut += "]";
+        } catch (SQLException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
+        }
+
+        return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
+    }
     private String getThumbnailForImage(String imagePath, int thumbHeight){
 
         ByteArrayOutputStream boas = new ByteArrayOutputStream();
