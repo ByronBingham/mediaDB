@@ -27,4 +27,26 @@ export class SearchBar extends LitElement {
     }
 }
 
+export class TopBar extends LitElement {
+    constructor(){
+        super();
+    }
+
+    goToHome(){
+        window.location=`/bbooru`;
+    }
+
+    render(){
+        return html`<link rel="stylesheet" href="bbooru.css">
+                    <div class="top-bar">
+                        <table><tr>
+                            <td><p @click=${this.goToHome}>BBooru</p></td>
+                            <td><search-bar></search-bar></td>
+                        </tr></table>
+                    </div>`;
+    }
+
+}
+
 customElements.define('search-bar', SearchBar);
+customElements.define('top-bar', TopBar);

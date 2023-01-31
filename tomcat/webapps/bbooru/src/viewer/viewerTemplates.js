@@ -14,8 +14,8 @@ export class ImageViewer extends LitElement {
     }
 
     render(){
-        return html`<div>
-                        <img src="data:image/jpg;base64,${this.imageData}" alt="${this.filename}" @click=${this.viewImageFullScreen}/>
+        return html`<div style="height: 100%; width: 100%;">
+                        <img style="object-fit: contain; height: 100%; width: 100%;" src="data:image/jpg;base64,${this.imageData}" alt="${this.filename}" @click=${this.viewImageFullScreen}/>
                     </div>`
     }
 

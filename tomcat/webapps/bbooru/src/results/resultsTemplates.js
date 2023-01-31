@@ -15,7 +15,9 @@ export class ResultPageElement extends LitElement {
     }
 
     render(){
-        return html`<div>
+        return html`
+        <link rel="stylesheet" href="bbooru.css">
+        <div class="image_flex_item">
             <img src="data:image/jpg;base64,${this.imageData}" alt="image" @click=${this.openImage}/>
         </div>`
     }
@@ -34,7 +36,9 @@ export class ResultsPage extends LitElement {
     }
 
     render(){
-        return html`<div>
+        return html`
+        <link rel="stylesheet" href="bbooru.css">
+        <div class="image_flex">
             ${this.resultElements}
         </div>`
     }

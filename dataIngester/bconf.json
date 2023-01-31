@@ -3,7 +3,8 @@
         {
             "name": "AnimeArt",
             "source_dirs": [
-                "E:\\Amazon Drive\\Pictures\\Photo_Frame"
+                "E:\\Amazon Drive\\Pictures\\Photo_Frame",
+                "Z:\\Documents\\Pictures\\Pictures\\Reference\\Art\\Reddit"
             ],
             "target_db": "ART",
             "auto_tag": true,

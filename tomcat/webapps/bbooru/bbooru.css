@@ -1,5 +1,51 @@
+:root {
+    --main-bg-color: rgb(0, 197, 0);
+  }
+
+body {
+    margin: 0; 
+    background-color: rgb(38, 38, 38);
+}
+
 .center {
     margin: auto;
     width: 50%;
     text-align: center;
+}
+
+.image_flex {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100vw;
+    overflow-x: hidden;
+}
+
+.image_flex_item {
+    padding: 5px;
+}
+
+.top-bar {
+    background-color: var(--main-bg-color);
+    height: 5vh;
+}
+
+.image-container {
+    width: 100vw;
+    height: 95vh; 
+    display: flex;
+    overflow: hidden;
+}
+
+.tags-sidebar {
+    height: 100%;
+    width: 10vw;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.image-viewer {
+    height: 100%;
+    width: 100%;
 }
