@@ -33,7 +33,7 @@ def get_valid_files(path: str, valid_extensions: list, jfif_webm_to_jpg: bool = 
         file_path = Path(file)
         if os.path.isfile(file) and file_path.suffix in valid_extensions:
 
-            if jfif_webm_to_jpg and file_path.suffix() in ['.jfif', '.webp']:
+            if jfif_webm_to_jpg and file_path.suffix in ['.jfif', '.webp']:
                 file_path = file_path.rename(file_path.with_suffix('.jpg'))
                 files.append(str(os.path.abspath(file_path)))
             else:
@@ -75,24 +75,25 @@ def process_image_group(group: ProcessingGroup):
 
     files = []
     for dir in group.source_dirs:
-        files.extend(get_valid_files(path=dir, valid_extensions=group.valid_extensions))
+        files.extend(get_valid_files(path=dir, valid_extensions=group.valid_extensions, jfif_webm_to_jpg=group.jfif_webm_to_jpg))
 
     print("INFO: Found " + str(len(files)) + " files")
 
     # check if any of the files are already in the database
-    newFiles = []
-    for file in files:
-        path = Path(file)
-        md5 = get_md5_for_file(path.resolve())
-        filename = path.name
+    if group.skip_existing:
+        newFiles = []
+        for file in files:
+            path = Path(file)
+            md5 = get_md5_for_file(path.resolve())
+            filename = path.name
 
-        query = f'SELECT md5, filename FROM {group.target_db.value} WHERE md5 = \'{md5}\' AND filename = \'{filename}\';'
-        result = do_query(query=query)
+            query = f'SELECT md5, filename FROM {group.target_db.value} WHERE md5 = \'{md5}\' AND filename = \'{filename}\';'
+            result = do_query(query=query)
 
-        if len(result) < 1:
-            newFiles.append(file)
-            
-    files = newFiles
+            if len(result) < 1:
+                newFiles.append(file)
+        files = newFiles
+
     print("INFO: Processing " + str(len(files)) + " new files")
 
     chunk_size = group.chunk_size
@@ -270,11 +271,15 @@ if __name__ == "__main__":
         jfif_to_jpg = False
         if 'jfif_webm_to_jpg' in group.keys():
             jfif_webm_to_jpg = group['jfif_webm_to_jpg']
+        skip_existing = False
+        if 'skip_existing' in group.keys():
+            skip_existing = group['skip_existing']
 
         group = ProcessingGroup(name=group['name'], source_dirs=group['source_dirs'],
                                 valid_extensions=group['valid_extensions'], target_db=group_db_enum, auto_tag=auto_tag,
                                 jfif_webm_to_jpg=jfif_webm_to_jpg, db_host=config['db_host'], db_user=config['db_user'],
-                                db_password=config['db_password'], tag_prob_thres=tag_prob_thres, chunk_size=chunk_size)
+                                db_password=config['db_password'], tag_prob_thres=tag_prob_thres, chunk_size=chunk_size,
+                                skip_existing=skip_existing)
         processing_groups.append(group)
 
     # process groups

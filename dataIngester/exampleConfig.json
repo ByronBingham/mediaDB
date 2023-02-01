@@ -9,6 +9,7 @@
             "auto_tag": true,
             "tag_prob_thres": 0.6,
             "jfif_webm_to_jpg": true,
+            "skip_existing": false,
             "valid_extensions":[
                 ".png",
                 ".jpeg",
