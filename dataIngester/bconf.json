@@ -2,14 +2,15 @@
     "ingest_groups":[
         {
             "name": "AnimeArt",
-            "source_dirs": [
-                "E:\\Amazon Drive\\Pictures\\Photo_Frame",
-                "Z:\\Documents\\Pictures\\Pictures\\Reference\\Art\\Reddit"
+            "source_dirs": [                
+                "Z:\\Documents\\Pictures\\Pictures\\Reference\\Art\\Reddit",
+                "E:\\Amazon Drive\\Pictures\\Photo_Frame"
             ],
             "target_db": "ART",
             "auto_tag": true,
             "tag_prob_thres": 0.6,
             "jfif_webm_to_jpg": true,
+            "skip_existing": true,
             "valid_extensions":[
                 ".png",
                 ".jpeg",

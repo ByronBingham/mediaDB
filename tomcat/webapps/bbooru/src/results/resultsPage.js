@@ -1,5 +1,6 @@
 import {ResultPageElement, ResultsPage} from './resultsTemplates';
 import {apiAddr, default_images_per_page} from '../constants';
+import { getNswfCookie } from '../util';
 
 var resultPage = undefined;
 
@@ -29,7 +30,13 @@ const handleSearchResponse = function(data){
         let thumbHeight = 200;
 
         fetch(`http://${apiAddr}/images/get_thumbnail?md5=${md5}&filename=${filename}&thumb_height=${thumbHeight}`).then((response) =>{
-            return response.json();
+            if(response.ok){
+                return response.json();
+            } else {
+                console.log("ERROR fetching thumbnail for image\n" +
+                "MD5: " + md5 + "\n" +
+                "Filename: " + filename)
+            }
         }
         ).then(handThumbResponse);
 
@@ -38,8 +45,9 @@ const handleSearchResponse = function(data){
 
 const sendSearchRequest = function(tagsString){    
     // query API
+    let nsfw = getNswfCookie()
     let requestString = `http://${apiAddr}/search_images/by_tag/page?tags=${tagsString}&page_num=0&results_per_page=${default_images_per_page}` +
-    `&include_thumb=false`;
+    `&include_thumb=false&include_nsfw=${nsfw}`;
     console.log("Request: " + requestString);
 
     // send request

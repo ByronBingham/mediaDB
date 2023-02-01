@@ -17,7 +17,7 @@ DROP TABLE IF EXISTS bmedia_schema.nsfw_images;
 DROP TABLE IF EXISTS bmedia_schema.memes;
 
 DROP SCHEMA IF EXISTS bmedia_schema;
-DROP DATABASE IF EXISTS bmedia;
+DROP DATABASE IF EXISTS bmedia WITH (FORCE);
 DROP ROLE IF EXISTS bmedia_admin;
 DROP ROLE IF EXISTS bmedia_user;
 

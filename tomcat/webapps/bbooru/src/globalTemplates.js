@@ -1,4 +1,5 @@
 import { LitElement, html } from 'lit-element';
+import { getNswfCookie, setNswfCookie } from './util';
 
 export class SearchBar extends LitElement {
     constructor(){
@@ -30,10 +31,26 @@ export class SearchBar extends LitElement {
 export class TopBar extends LitElement {
     constructor(){
         super();
+        this.nswf = getNswfCookie();
+        this.visibility = "hidden";
+        if(this.nswf){
+            this.visibility = "visible";
+        }
     }
 
     goToHome(){
         window.location=`/bbooru`;
+    }
+
+    toggle(){
+        let checkbox = this.shadowRoot.getElementById("nsfw-check");
+        this.nswf = checkbox.checked;
+        setNswfCookie(this.nswf);
+    }
+
+    unhideNsfw(){
+        this.visibility = "visible";
+        this.requestUpdate();
     }
 
     render(){
@@ -42,6 +59,13 @@ export class TopBar extends LitElement {
                         <table><tr>
                             <td><p @click=${this.goToHome}>BBooru</p></td>
                             <td><search-bar></search-bar></td>
+                            <td style="width: 5vw; padding-left: 2vw;" @click=${this.unhideNsfw}>
+                                <div>
+                                    <link rel="stylesheet" href="bbooru.css">
+                                    <input type="checkbox" id="nsfw-check" .checked=${this.nswf} @click=${this.toggle} 
+                                        style="visibility: ${this.visibility}; transform: scale(2.5);">
+                                </div>
+                            </td>
                         </tr></table>
                     </div>`;
     }

@@ -18,6 +18,19 @@ DB_NAME = "bmedia"
 db_conn = None
 
 
+def clean_jfif_webp(path: Path):
+    suffixLength = len(path.suffix)
+
+    new_path = os.path.abspath(path)[:-suffixLength] + ".png"
+
+    image = Image.open(path)
+
+    image.save(new_path)
+    os.remove(path=path)
+
+    return new_path
+    
+
 def get_valid_files(path: str, valid_extensions: list, jfif_webm_to_jpg: bool = False) -> list:
     """
     Given the specified base directory and list of valid file types (extensions), searches
@@ -34,8 +47,7 @@ def get_valid_files(path: str, valid_extensions: list, jfif_webm_to_jpg: bool = 
         if os.path.isfile(file) and file_path.suffix in valid_extensions:
 
             if jfif_webm_to_jpg and file_path.suffix in ['.jfif', '.webp']:
-                file_path = file_path.rename(file_path.with_suffix('.jpg'))
-                files.append(str(os.path.abspath(file_path)))
+                files.append(str(os.path.abspath(clean_jfif_webp(file_path))))
             else:
                 files.append(str(file))
 
@@ -115,7 +127,8 @@ def process_image_group(group: ProcessingGroup):
             # get the data ready for inserting into DB
             file = file.replace("\\", "/")
             query_vals, join_data = get_image_data_for_db_insert(file)
-            values.append(query_vals)
+            if query_vals != None:
+                values.append(query_vals)
 
         if len(values) < 1:
             print("WARNING: No valid files found")
@@ -197,8 +210,13 @@ def get_image_data_for_db_insert(file: Path):
     Creates a string that can be appended to the VALUES part of an INSERT query
     """
     md5 = get_md5_for_file(file)
-    image = Image.open(file)
-    resolution_width, resolution_height = image.size
+    resolution_width = 0
+    resolution_height = 0
+    try:
+        image = Image.open(file)
+        resolution_width, resolution_height = image.size
+    except Exception as e:
+        print("ERROR: Couldn't open file " + str(file))    
     file_size_bytes = os.path.getsize(file)
     filename = os.path.basename(file)
     full_path = os.path.abspath(file).replace("\\", "/")

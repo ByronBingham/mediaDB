@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = {
-  //mode: 'development',
+  mode: 'development',
   entry: {
     index: ['./src/bbooru.js'],
     global: ['./src/globalTemplates.js'],
