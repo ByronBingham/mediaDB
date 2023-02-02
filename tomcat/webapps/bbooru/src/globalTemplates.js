@@ -132,7 +132,6 @@ export class PageSelector extends LitElement {
 
     pageNumCallback(data) {
         let lastPageNum = data["pages"] - 1;
-        console.log("Found " + lastPageNum + " pages of results");
 
         if(this.currentPageNum > 0){
             this.backPage = new PageNumber("<", this.baseUrl + (this.currentPageNum - 1), false);
@@ -142,18 +141,18 @@ export class PageSelector extends LitElement {
             this.backbackPage = new PageNumber("<<", this.baseUrl + 0, false);
         }
 
-        if(this.currentPageNum > 5){
+        if(this.currentPageNum > 4){
             this.pageBackFive = new PageNumber(`${this.currentPageNum - 5}`, this.baseUrl + (this.currentPageNum - 5), false);
             this.pageBackFive = html`${this.pageBackFive}<p class="page-number">...</p>`;
         }
 
         
-        if(this.currentPageNum > 2){
+        if(this.currentPageNum > 1){
             this.pageBackTwo = new PageNumber(`${this.currentPageNum - 2}`, this.baseUrl + (this.currentPageNum - 2), false);
         }
 
         
-        if(this.currentPageNum > 1){
+        if(this.currentPageNum > 0){
             this.pageBackOne = new PageNumber(`${this.currentPageNum - 1}`, this.baseUrl + (this.currentPageNum - 1), false);
         }
 
@@ -170,18 +169,18 @@ export class PageSelector extends LitElement {
         }
 
         
-        if(this.currentPageNum < lastPageNum - 5){
+        if(this.currentPageNum < lastPageNum - 4){
             this.pageFwFive = new PageNumber(`${this.currentPageNum + 5}`, this.baseUrl + (this.currentPageNum + 5), false);
             this.pageFwFive = html`<p class="page-number">...</p>${this.pageFwFive}`;
         }
 
         
-        if(this.currentPageNum < lastPageNum - 2){
+        if(this.currentPageNum < lastPageNum - 1){
             this.pageFwTwo = new PageNumber(`${this.currentPageNum + 2}`, `${this.baseUrl}${this.currentPageNum + 2}`, false);
         }
 
         
-        if(this.currentPageNum < lastPageNum - 1){
+        if(this.currentPageNum < lastPageNum){
             this.pageFwOne = new PageNumber(`${this.currentPageNum + 1}`, `${this.baseUrl}${this.currentPageNum + 1}`, false);
         }
 
