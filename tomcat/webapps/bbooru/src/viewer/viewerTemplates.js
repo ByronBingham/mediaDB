@@ -51,7 +51,9 @@ export class ImageTag extends LitElement {
     }
 
     render(){
-        return html`<p @click=${this.searchTag}>${this.name}</p>`;
+        return html`
+        <link rel="stylesheet" href="bbooru.css">
+        <p class="tag" @click=${this.searchTag}>${this.name}</p>`;
     }
 }
 

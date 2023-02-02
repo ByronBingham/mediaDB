@@ -4,7 +4,11 @@
             "name": "AnimeArt",
             "source_dirs": [                
                 "Z:\\Documents\\Pictures\\Pictures\\Reference\\Art\\Reddit",
-                "E:\\Amazon Drive\\Pictures\\Photo_Frame"
+                "Z:\\Documents\\Pictures\\Pictures\\Reference\\Art\\misc",
+                "E:\\Amazon Drive\\Pictures\\Photo_Frame",
+                "Z:\\Documents\\Pictures\\Pictures\\Reference\\Art\\PhoneWallpaper",
+                "Z:\\Documents\\Pictures\\Pictures\\Reference\\Art\\Pixiv",
+                "Z:\\Documents\\Pictures\\Pictures\\Reference\\Art\\Twitter"
             ],
             "target_db": "ART",
             "auto_tag": true,

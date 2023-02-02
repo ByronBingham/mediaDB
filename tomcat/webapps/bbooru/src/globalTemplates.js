@@ -1,5 +1,7 @@
 import { LitElement, html } from 'lit-element';
 import { getNswfCookie, setNswfCookie } from './util';
+import {apiAddr, default_images_per_page} from './constants';
+
 
 export class SearchBar extends LitElement {
     constructor(){
@@ -72,5 +74,135 @@ export class TopBar extends LitElement {
 
 }
 
+export class PageNumber extends LitElement {
+    constructor(value, url, isCurrent){
+        super();
+        this.value = value;
+        this.url = url;
+        this.isCurrent = isCurrent;
+        this.style="display: flex;";
+    }
+
+    render(){
+        let styleString = "";
+        if(this.isCurrent){
+            styleString = "style=\"font-weight: bold;\""
+        }
+        return html`
+                    <link rel="stylesheet" href="bbooru.css">
+                    <a class="page-number" href="${this.url}" ${this.styleString}>${this.value}</a>`;
+    }
+}
+
+export class PageSelector extends LitElement {
+    constructor(){
+        super();
+        let params = (new URL(document.location)).searchParams;
+        let searchString = params.get("search");
+        this.currentPageNum = params.get("page");
+        if(this.currentPageNum === undefined || this.currentPageNum === null){
+            this.currentPageNum = 0;
+        } else {
+            this.currentPageNum = parseInt(this.currentPageNum);
+        }
+        this.baseUrl = `/bbooru/resultsPage.html?search=${searchString}&page=`
+
+        this.backPage = html``;
+        this.backbackPage = html``;
+        this.pageBackFive = html``;
+        this.pageBackTwo = html``;
+        this.pageBackOne = html``;
+        this.fwPage = html``;
+        this.fwfwPage = html``;
+        this.pageFwFive = html``;
+        this.pageFwTwo = html``;
+        this.pageFwOne = html``;
+
+        let nsfw = getNswfCookie();
+        fetch(`http://${apiAddr}/search_images/by_tag/page/count?tags=${searchString}&results_per_page=${default_images_per_page}&include_nsfw=${nsfw}`).then((response) =>{
+            if(response.ok){
+                return response.json();
+            } else {
+                console.log("ERROR fetching page count for search\n" +
+                "Tags: " + searchString)
+            }
+        }
+        ).then(this.pageNumCallback.bind(this));
+    }
+
+    pageNumCallback(data) {
+        let lastPageNum = data["pages"] - 1;
+        console.log("Found " + lastPageNum + " pages of results");
+
+        if(this.currentPageNum > 0){
+            this.backPage = new PageNumber("<", this.baseUrl + (this.currentPageNum - 1), false);
+        }
+
+        if(this.currentPageNum > 1){
+            this.backbackPage = new PageNumber("<<", this.baseUrl + 0, false);
+        }
+
+        if(this.currentPageNum > 5){
+            this.pageBackFive = new PageNumber(`${this.currentPageNum - 5}`, this.baseUrl + (this.currentPageNum - 5), false);
+            this.pageBackFive = html`${this.pageBackFive}<p class="page-number">...</p>`;
+        }
+
+        
+        if(this.currentPageNum > 2){
+            this.pageBackTwo = new PageNumber(`${this.currentPageNum - 2}`, this.baseUrl + (this.currentPageNum - 2), false);
+        }
+
+        
+        if(this.currentPageNum > 1){
+            this.pageBackOne = new PageNumber(`${this.currentPageNum - 1}`, this.baseUrl + (this.currentPageNum - 1), false);
+        }
+
+        this.currentPageElement = new PageNumber(this.currentPageNum, this.baseUrl + this.currentPageNum, true);
+
+        
+        if(this.currentPageNum < lastPageNum){
+            this.fwPage = new PageNumber(">", this.baseUrl + (this.currentPageNum + 1), false);
+        }
+
+        
+        if(this.currentPageNum < lastPageNum - 1){
+            this.fwfwPage = new PageNumber(">>", this.baseUrl + lastPageNum, false);
+        }
+
+        
+        if(this.currentPageNum < lastPageNum - 5){
+            this.pageFwFive = new PageNumber(`${this.currentPageNum + 5}`, this.baseUrl + (this.currentPageNum + 5), false);
+            this.pageFwFive = html`<p class="page-number">...</p>${this.pageFwFive}`;
+        }
+
+        
+        if(this.currentPageNum < lastPageNum - 2){
+            this.pageFwTwo = new PageNumber(`${this.currentPageNum + 2}`, `${this.baseUrl}${this.currentPageNum + 2}`, false);
+        }
+
+        
+        if(this.currentPageNum < lastPageNum - 1){
+            this.pageFwOne = new PageNumber(`${this.currentPageNum + 1}`, `${this.baseUrl}${this.currentPageNum + 1}`, false);
+        }
+
+        console.log("Page Selector Done Loading");
+        this.requestUpdate();
+    }
+
+    render(){
+        return html`
+                    <link rel="stylesheet" href="bbooru.css">
+                    <div class="page-selector">
+                        ${this.backbackPage} ${this.backPage} ${this.pageBackFive} ${this.pageBackTwo} ${this.pageBackOne}
+                        ${this.currentPageElement}
+                        ${this.pageFwOne} ${this.pageFwTwo} ${this.pageFwFive} ${this.fwPage} ${this.fwfwPage}
+                    </div>`;
+    }
+
+
+}
+
 customElements.define('search-bar', SearchBar);
 customElements.define('top-bar', TopBar);
+customElements.define('page-number', PageNumber);
+customElements.define('page-selector', PageSelector);

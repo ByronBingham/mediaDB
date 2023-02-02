@@ -97,7 +97,7 @@ def process_image_group(group: ProcessingGroup):
         for file in files:
             path = Path(file)
             md5 = get_md5_for_file(path.resolve())
-            filename = path.name
+            filename = path.name.replace("'", "''")
 
             query = f'SELECT md5, filename FROM {group.target_db.value} WHERE md5 = \'{md5}\' AND filename = \'{filename}\';'
             result = do_query(query=query)
@@ -164,6 +164,7 @@ def process_image_group(group: ProcessingGroup):
 
             for key in tags_out.keys():
                 filename = Path(key).name
+                filename = filename.replace("'", "''")
                 tag_data = tags_out[key]
                 for tag, prob in tag_data:
                     md5 = get_md5_for_file(Path(key).resolve())
@@ -219,7 +220,8 @@ def get_image_data_for_db_insert(file: Path):
         print("ERROR: Couldn't open file " + str(file))    
     file_size_bytes = os.path.getsize(file)
     filename = os.path.basename(file)
-    full_path = os.path.abspath(file).replace("\\", "/")
+    filename = filename.replace("'", "''")
+    full_path = os.path.abspath(file).replace("\\", "/").replace("'", "''")
 
     return (f'(\'{md5}\', \'{filename}\', \'{full_path}\', {resolution_width}, {resolution_height}, {file_size_bytes})', (md5, filename))
 

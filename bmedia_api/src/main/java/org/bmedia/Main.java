@@ -45,14 +45,6 @@ public class Main {
         return ResponseEntity.status(HttpStatus.OK).body("This is the BMedia API");
     }
 
-    @RequestMapping(value = "/search_images/by_tag/all", produces = "application/json")
-    public ResponseEntity<String> search_images_by_tag_all(@RequestParam("tags") String[] tags,
-                                                           @RequestParam("include_thumb") boolean includeThumb) {
-
-
-        return ResponseEntity.status(HttpStatus.OK).body("This is the BMedia API");
-    }
-
     @RequestMapping(value = "/search_images/by_tag/page", produces = "application/json")
     public ResponseEntity<String> search_images_by_tag_page(@RequestParam("tags") String[] tags,
                                                             @RequestParam("page_num") int pageNum,
@@ -65,7 +57,9 @@ public class Main {
         int thumbHeightVal = thumbHeight.orElse(400);
         boolean includeNsfwVal = includeNsfw.orElse(false);
 
-
+        for (int i = 0; i < tags.length; i++) {
+            tags[i] = tags[i].replace("'", "''");
+        }
         String tag_string = "'" + String.join("','", tags) + "'";
         int numTags = tags.length;
         String includePatString = "";
@@ -125,6 +119,57 @@ public class Main {
             }
             jsonOut += String.join(",", jsonEntries);
             jsonOut += "]";
+        } catch (SQLException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
+        }
+
+        return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
+    }
+
+    @RequestMapping(value = "/search_images/by_tag/page/count", produces = "application/json")
+    public ResponseEntity<String> search_images_by_tag_page_count(@RequestParam("tags") String[] tags,
+                                                            @RequestParam("results_per_page") int resultsPerPage,
+                                                            @RequestParam("include_nsfw") Optional<Boolean> includeNsfw) {
+        boolean includeNsfwVal = includeNsfw.orElse(false);
+
+        for (int i = 0; i < tags.length; i++) {
+            tags[i] = tags[i].replace("'", "''");
+        }
+        String tag_string = "'" + String.join("','", tags) + "'";
+        int numTags = tags.length;
+
+        String nsfwString1 = "";
+        String nsfwString2 = "";
+        String nsfwJoinString = "";
+        if (!includeNsfwVal){
+            nsfwJoinString += "JOIN bmedia_schema.tags t ON at.tag_name = t.tag_name ";
+            nsfwString1 += " OR t.nsfw = 't' ";
+            nsfwString2 += " AND MAX(CASE t.nsfw WHEN 't' THEN 1 ELSE 0 END) = 0";
+        }
+
+        // for reference: https://elliotchance.medium.com/handling-tags-in-a-sql-database-5597b9894049
+        String query = "SELECT COUNT(*) AS itemCount FROM (SELECT a.filename" +
+                " FROM bmedia_schema.art a JOIN bmedia_schema.art_tags_join at ON (a.md5, a.filename) = (at.md5, at.filename) " +
+                nsfwJoinString +
+                "WHERE at.tag_name IN (" + tag_string + ") " + nsfwString1 +
+                "GROUP BY (a.md5, a.filename) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2 +
+                ") as g;";
+
+        String jsonOut = "";
+        try {
+            Statement statement = dbconn.createStatement();
+            ResultSet result = statement.executeQuery(query);
+
+            if(result.next()) {
+                int totalResults = result.getInt("itemCount");
+                int pages = (int) Math.ceil(totalResults / resultsPerPage);
+
+                jsonOut += "{" +
+                        "\"pages\": \"" + pages + "\"," +
+                        "\"total_results\": " + totalResults;
+
+                jsonOut += "}";
+            }
         } catch (SQLException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
         }

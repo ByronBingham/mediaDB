@@ -7,9 +7,15 @@ var resultPage = undefined;
 window.onDocLoad = function(){
     let params = (new URL(document.location)).searchParams;
     let searchString = params.get("search");
+    let currentPageNum = params.get("page");
+    if(currentPageNum === undefined || currentPageNum === null){
+        currentPageNum = 0;
+    } else {
+        currentPageNum = parseInt(currentPageNum);
+    }
     resultPage = new ResultsPage();
     if(searchString){
-        sendSearchRequest(searchString);
+        sendSearchRequest(searchString, currentPageNum);
     }
 }
 
@@ -43,12 +49,11 @@ const handleSearchResponse = function(data){
     });
 }
 
-const sendSearchRequest = function(tagsString){    
+const sendSearchRequest = function(tagsString, pageNum){
     // query API
     let nsfw = getNswfCookie()
-    let requestString = `http://${apiAddr}/search_images/by_tag/page?tags=${tagsString}&page_num=0&results_per_page=${default_images_per_page}` +
+    let requestString = `http://${apiAddr}/search_images/by_tag/page?tags=${tagsString}&page_num=${pageNum}&results_per_page=${default_images_per_page}` +
     `&include_thumb=false&include_nsfw=${nsfw}`;
-    console.log("Request: " + requestString);
 
     // send request
     fetch(requestString).then((response) =>{
