@@ -17,3 +17,5 @@ After building DeepDanbooru all Python dependencies, cd into `./DeepDanbooru` an
 
 ## NOTES
  - If you are having issues with encoding on Windows (e.g. Japanese characters in files breaking the ingestion script), change your system locale to use UTF-8
+ - If you get an error like "FileNotFoundError: [WinError 206] The filename or extension is too long", set the `chunk_size` property in the ingester config to a smaller
+  number. This issue can occur if the command to DeepDanbooru is too long
