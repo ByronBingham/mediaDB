@@ -16,6 +16,8 @@ window.onDocLoad = function(){
     resultPage = new ResultsPage();
     if(searchString){
         sendSearchRequest(searchString, currentPageNum);
+    } else {
+        sendSearchRequest("", currentPageNum);
     }
 }
 
@@ -54,6 +56,7 @@ const sendSearchRequest = function(tagsString, pageNum){
     let nsfw = getNswfCookie()
     let requestString = `http://${apiAddr}/search_images/by_tag/page?tags=${tagsString}&page_num=${pageNum}&results_per_page=${default_images_per_page}` +
     `&include_thumb=false&include_nsfw=${nsfw}`;
+    console.log(requestString);
 
     // send request
     fetch(requestString).then((response) =>{

@@ -3,6 +3,7 @@
    - music: artist, albumn, genre (just use tags maybe?), etc. link to cover art?
  - add GUI to edit tags and tag categories
  - remove entry from DB if file moved/doesn't exist
+ - add prepared statements to API to speed up queries?
  - web ui
    - add page selector to results page
    - add DB selector

@@ -14,3 +14,6 @@ Database project to store personal data on local servers. The goal of this proje
 ## DeepDanbooru
 To build DeepDanbooru...
 After building DeepDanbooru all Python dependencies, cd into `./DeepDanbooru` and run `pyhton ./setup.py install`. 
+
+## NOTES
+ - If you are having issues with encoding on Windows (e.g. Japanese characters in files breaking the ingestion script), change your system locale to use UTF-8

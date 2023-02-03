@@ -73,17 +73,34 @@ public class Main {
         String nsfwJoinString = "";
         if (!includeNsfwVal){
             nsfwJoinString += "JOIN bmedia_schema.tags t ON at.tag_name = t.tag_name ";
-            nsfwString1 += " OR t.nsfw = 't' ";
-            nsfwString2 += " AND MAX(CASE t.nsfw WHEN 't' THEN 1 ELSE 0 END) = 0";
+            nsfwString1 += "t.nsfw = 't' ";
+            nsfwString2 += "MAX(CASE t.nsfw WHEN 't' THEN 1 ELSE 0 END) = 0";
         }
 
-        // for reference: https://elliotchance.medium.com/handling-tags-in-a-sql-database-5597b9894049
-        String query = "SELECT a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
-                " FROM bmedia_schema.art a JOIN bmedia_schema.art_tags_join at ON (a.md5, a.filename) = (at.md5, at.filename) " +
-                nsfwJoinString +
-                "WHERE at.tag_name IN (" + tag_string + ") " + nsfwString1 +
-                "GROUP BY (a.md5, a.filename) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2 +
-                " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage + ";";
+        String query = "";
+        if(numTags == 0){
+            if(!includeNsfwVal) {
+                nsfwString1 = "WHERE " + nsfwString1;
+                nsfwString2 = "HAVING " + nsfwString2;
+            }
+            query = "SELECT a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
+                    " FROM bmedia_schema.art a JOIN bmedia_schema.art_tags_join at ON (a.md5, a.filename) = (at.md5, at.filename) " +
+                    nsfwJoinString +
+                    "GROUP BY (a.md5, a.filename)" + nsfwString2 +
+                    " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage + ";";
+        } else {
+            // for reference: https://elliotchance.medium.com/handling-tags-in-a-sql-database-5597b9894049
+            if(!includeNsfwVal) {
+                nsfwString1 = "OR  " + nsfwString1;
+                nsfwString2 = " AND " + nsfwString2;
+            }
+            query = "SELECT a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
+                    " FROM bmedia_schema.art a JOIN bmedia_schema.art_tags_join at ON (a.md5, a.filename) = (at.md5, at.filename) " +
+                    nsfwJoinString +
+                    "WHERE at.tag_name IN (" + tag_string + ") " + nsfwString1 +
+                    "GROUP BY (a.md5, a.filename) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2 +
+                    " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage + ";";
+        }
 
         String jsonOut = "[";
         try {
