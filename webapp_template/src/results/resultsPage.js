@@ -1,5 +1,4 @@
 import {ResultPageElement, ResultsPage} from './resultsTemplates';
-import {apiAddr, default_images_per_page} from '../constants';
 import { getNswfCookie } from '../util';
 
 var resultPage = undefined;

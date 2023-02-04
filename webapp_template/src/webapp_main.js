@@ -1,6 +1,6 @@
-import {webapp_name} from './constants.js';
+import {IndexPage} from './indexTemplate.js';
 
-goToResults = function() {
+window.goToResults = function() {
     // get tags
     tags = document.getElementById("tags-search").value.split(' ');
     filteredTags = [];

@@ -10,7 +10,7 @@ export class ImageViewer extends LitElement {
     }
 
     viewImageFullScreen(){
-
+        // TODO: implement
     }
 
     render(){
@@ -47,12 +47,12 @@ export class ImageTag extends LitElement {
     }
 
     searchTag(){
-        window.location=`/bbooru/resultsPage.html?search=${this.name}`;
+        window.location=`/${webapp_name}/resultsPage.html?search=${this.name}`;
     }
 
     render(){
         return html`
-        <link rel="stylesheet" href="bbooru.css">
+        <link rel="stylesheet" href="template.css">
         <p class="tag" @click=${this.searchTag}>${this.name}</p>`;
     }
 }

@@ -2,7 +2,7 @@ const path = require('path');
 const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
-  mode: 'development',
+  //mode: 'development',
   entry: {
     index: ['./src/webapp_main.js'],
     global: ['./src/globalTemplates.js'],
@@ -16,7 +16,8 @@ module.exports = {
   plugins: [
     new CopyPlugin({
       patterns: [
-        { from: "template_files", to: "." }
+        { from: "template_files", to: "." },
+        { from: "WEB-INF", to: "WEB-INF" }
       ],
     })
   ]

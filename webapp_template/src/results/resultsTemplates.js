@@ -11,12 +11,12 @@ export class ResultPageElement extends LitElement {
 
     openImage(){
         console.log("Opening Image with md5=" + this.md5 + " and filename=" + this.filename);
-        window.location = `/bbooru/imagePage.html?md5=${this.md5}&filename=${this.filename}`;
+        window.location = `/${webapp_name}/imagePage.html?md5=${this.md5}&filename=${this.filename}`;
     }
 
     render(){
         return html`
-        <link rel="stylesheet" href="bbooru.css">
+        <link rel="stylesheet" href="template.css">
         <div class="image_flex_item">
             <img src="data:image/jpg;base64,${this.imageData}" alt="image" @click=${this.openImage}/>
         </div>`
@@ -37,7 +37,7 @@ export class ResultsPage extends LitElement {
 
     render(){
         return html`
-        <link rel="stylesheet" href="bbooru.css">
+        <link rel="stylesheet" href="template.css">
         <div class="image_flex">
             ${this.resultElements}
         </div>`

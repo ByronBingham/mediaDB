@@ -1,6 +1,5 @@
 import { LitElement, html } from 'lit-element';
 import { getNswfCookie, setNswfCookie } from './util';
-import {apiAddr, default_images_per_page} from './constants';
 
 
 export class SearchBar extends LitElement {
@@ -19,7 +18,7 @@ export class SearchBar extends LitElement {
         });
         let tagsString = filteredTags.join(',');
 
-        window.location=`/bbooru/resultsPage.html?search=` + tagsString;
+        window.location=`/${webapp_name}/resultsPage.html?search=` + tagsString;
     }
 
     render(){
@@ -41,7 +40,7 @@ export class TopBar extends LitElement {
     }
 
     goToHome(){
-        window.location=`/bbooru`;
+        window.location=`/${webapp_name}`;
     }
 
     toggle(){
@@ -56,14 +55,14 @@ export class TopBar extends LitElement {
     }
 
     render(){
-        return html`<link rel="stylesheet" href="bbooru.css">
+        return html`<link rel="stylesheet" href="template.css">
                     <div class="top-bar">
                         <table><tr>
-                            <td><p @click=${this.goToHome}>BBooru</p></td>
+                            <td><p @click=${this.goToHome}>${webapp_long_name}</p></td>
                             <td><search-bar></search-bar></td>
                             <td style="width: 5vw; padding-left: 2vw;" @click=${this.unhideNsfw}>
                                 <div>
-                                    <link rel="stylesheet" href="bbooru.css">
+                                    <link rel="stylesheet" href="template.css">
                                     <input type="checkbox" id="nsfw-check" .checked=${this.nswf} @click=${this.toggle} 
                                         style="visibility: ${this.visibility}; transform: scale(2.5);">
                                 </div>
@@ -89,7 +88,7 @@ export class PageNumber extends LitElement {
             styleString = "style=\"font-weight: bold;\""
         }
         return html`
-                    <link rel="stylesheet" href="bbooru.css">
+                    <link rel="stylesheet" href="template.css">
                     <a class="page-number" href="${this.url}" ${this.styleString}>${this.value}</a>`;
     }
 }
@@ -105,7 +104,7 @@ export class PageSelector extends LitElement {
         } else {
             this.currentPageNum = parseInt(this.currentPageNum);
         }
-        this.baseUrl = `/bbooru/resultsPage.html?search=${searchString}&page=`
+        this.baseUrl = `/${webapp_name}/resultsPage.html?search=${searchString}&page=`
 
         this.backPage = html``;
         this.backbackPage = html``;
@@ -190,7 +189,7 @@ export class PageSelector extends LitElement {
 
     render(){
         return html`
-                    <link rel="stylesheet" href="bbooru.css">
+                    <link rel="stylesheet" href="template.css">
                     <div class="page-selector">
                         ${this.backbackPage} ${this.backPage} ${this.pageBackFive} ${this.pageBackTwo} ${this.pageBackOne}
                         ${this.currentPageElement}

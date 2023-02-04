@@ -1,5 +1,4 @@
 import { ImageViewer, ImageTagList, ImageTag } from "./viewerTemplates";
-import {apiAddr} from '../constants';
 
 var imageViewer = undefined;
 var imageTagList = undefined;
