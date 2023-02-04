@@ -38,6 +38,7 @@ hs_err_pid*
 
 # tomcat
 tomcat/logs/*
+tomcat/webapps/*
 
 # npm
 *node_modules/
