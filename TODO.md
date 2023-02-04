@@ -5,11 +5,13 @@
  - remove entry from DB if file moved/doesn't exist
  - add prepared statements to API to speed up queries?
  - web ui
-   - add page selector to results page
-   - add DB selector
+   - add DB selector or implement web ui as a template so it's easy to create multiple webui's
    - add filters
-     - nswf
+     - resolution
+     - size
    - change size of thumbnails based on veiwport size
+   - add tag editor page
+   - add tag add/delete option to image viewer
 
 ## Ideas
  - Use DeepDanbooru to add tags to un-tagged images
