@@ -100,7 +100,7 @@ public class Main {
                 nsfwString2 = " AND " + nsfwString2;
             }
             query = "SELECT a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
-                    " FROM bmedia_schema.art a JOIN bmedia_schema.art_tags_join at ON (a.md5, a.filename) = (at.md5, at.filename) " +
+                    " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.md5, a.filename) = (at.md5, at.filename) " +
                     nsfwJoinString +
                     "WHERE at.tag_name IN (" + tag_string + ") " + nsfwString1 +
                     "GROUP BY (a.md5, a.filename) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2 +
