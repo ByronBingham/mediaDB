@@ -36,7 +36,7 @@ const handleSearchResponse = function(data){
         let filename = obj["filename"];
         let thumbHeight = 200;
 
-        fetch(`http://${apiAddr}/images/get_thumbnail?md5=${md5}&filename=${filename}&thumb_height=${thumbHeight}`).then((response) =>{
+        fetch(`http://${apiAddr}/images/get_thumbnail?table_name=${dbTableName}&md5=${md5}&filename=${filename}&thumb_height=${thumbHeight}`).then((response) =>{
             if(response.ok){
                 return response.json();
             } else {
@@ -53,7 +53,7 @@ const handleSearchResponse = function(data){
 const sendSearchRequest = function(tagsString, pageNum){
     // query API
     let nsfw = getNswfCookie()
-    let requestString = `http://${apiAddr}/search_images/by_tag/page?tags=${tagsString}&page_num=${pageNum}&results_per_page=${default_images_per_page}` +
+    let requestString = `http://${apiAddr}/search_images/by_tag/page?table_name=${dbTableName}&tags=${tagsString}&page_num=${pageNum}&results_per_page=${default_images_per_page}` +
     `&include_thumb=false&include_nsfw=${nsfw}`;
     console.log(requestString);
 

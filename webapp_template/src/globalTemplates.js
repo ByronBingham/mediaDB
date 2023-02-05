@@ -118,7 +118,7 @@ export class PageSelector extends LitElement {
         this.pageFwOne = html``;
 
         let nsfw = getNswfCookie();
-        fetch(`http://${apiAddr}/search_images/by_tag/page/count?tags=${searchString}&results_per_page=${default_images_per_page}&include_nsfw=${nsfw}`).then((response) =>{
+        fetch(`http://${apiAddr}/search_images/by_tag/page/count?table_name=${dbTableName}&tags=${searchString}&results_per_page=${default_images_per_page}&include_nsfw=${nsfw}`).then((response) =>{
             if(response.ok){
                 return response.json();
             } else {

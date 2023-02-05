@@ -1,3 +1,4 @@
+const dbTableName = 'art';
 const default_images_per_page=50;
 const webapp_name = 'bbooru';
 const webapp_long_name = 'BBooru';

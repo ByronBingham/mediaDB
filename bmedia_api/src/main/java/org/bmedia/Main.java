@@ -46,7 +46,8 @@ public class Main {
     }
 
     @RequestMapping(value = "/search_images/by_tag/page", produces = "application/json")
-    public ResponseEntity<String> search_images_by_tag_page(@RequestParam("tags") String[] tags,
+    public ResponseEntity<String> search_images_by_tag_page(@RequestParam("table_name") String tbName,
+                                                            @RequestParam("tags") String[] tags,
                                                             @RequestParam("page_num") int pageNum,
                                                             @RequestParam("results_per_page") int resultsPerPage,
                                                             @RequestParam("include_thumb") Optional<Boolean> includeThumb,
@@ -56,6 +57,10 @@ public class Main {
         boolean includeThumbVal = includeThumb.orElse(false);
         int thumbHeightVal = thumbHeight.orElse(400);
         boolean includeNsfwVal = includeNsfw.orElse(false);
+        String schemaName = "bmedia_schema";
+        String tbNameFull = schemaName + "." + tbName;
+        String tagJoinTableName = schemaName + "." + tbName + "_tags_join";
+        String tagTableName = schemaName + "." + "tags";
 
         for (int i = 0; i < tags.length; i++) {
             tags[i] = tags[i].replace("'", "''");
@@ -71,26 +76,26 @@ public class Main {
         String nsfwString1 = "";
         String nsfwString2 = "";
         String nsfwJoinString = "";
-        if (!includeNsfwVal){
-            nsfwJoinString += "JOIN bmedia_schema.tags t ON at.tag_name = t.tag_name ";
+        if (!includeNsfwVal) {
+            nsfwJoinString += "JOIN " + tagTableName + " t ON at.tag_name = t.tag_name ";
             nsfwString1 += "t.nsfw = 't' ";
             nsfwString2 += "MAX(CASE t.nsfw WHEN 't' THEN 1 ELSE 0 END) = 0";
         }
 
         String query = "";
-        if(numTags == 0){
-            if(!includeNsfwVal) {
+        if (numTags == 0) {
+            if (!includeNsfwVal) {
                 nsfwString1 = "WHERE " + nsfwString1;
                 nsfwString2 = "HAVING " + nsfwString2;
             }
             query = "SELECT a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
-                    " FROM bmedia_schema.art a JOIN bmedia_schema.art_tags_join at ON (a.md5, a.filename) = (at.md5, at.filename) " +
+                    " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.md5, a.filename) = (at.md5, at.filename) " +
                     nsfwJoinString +
                     "GROUP BY (a.md5, a.filename)" + nsfwString2 +
                     " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage + ";";
         } else {
             // for reference: https://elliotchance.medium.com/handling-tags-in-a-sql-database-5597b9894049
-            if(!includeNsfwVal) {
+            if (!includeNsfwVal) {
                 nsfwString1 = "OR  " + nsfwString1;
                 nsfwString2 = " AND " + nsfwString2;
             }
@@ -125,7 +130,7 @@ public class Main {
                 if (includeThumbVal) {
                     String imagePath = result.getString("file_path");
                     String b64Thumb = getThumbnailForImage(imagePath, thumbHeightVal);
-                    if(b64Thumb == null){
+                    if (b64Thumb == null) {
                         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("FILE IO error");
                     }
                     jsonEntry += "\n,\"thumb_base64\": \"" + b64Thumb + "\"";
@@ -144,10 +149,15 @@ public class Main {
     }
 
     @RequestMapping(value = "/search_images/by_tag/page/count", produces = "application/json")
-    public ResponseEntity<String> search_images_by_tag_page_count(@RequestParam("tags") String[] tags,
-                                                            @RequestParam("results_per_page") int resultsPerPage,
-                                                            @RequestParam("include_nsfw") Optional<Boolean> includeNsfw) {
+    public ResponseEntity<String> search_images_by_tag_page_count(@RequestParam("table_name") String tbName,
+                                                                  @RequestParam("tags") String[] tags,
+                                                                  @RequestParam("results_per_page") int resultsPerPage,
+                                                                  @RequestParam("include_nsfw") Optional<Boolean> includeNsfw) {
         boolean includeNsfwVal = includeNsfw.orElse(false);
+        String schemaName = "bmedia_schema";
+        String tbNameFull = schemaName + "." + tbName;
+        String tagJoinTableName = schemaName + "." + tbName + "_tags_join";
+        String tagTableName = schemaName + "." + "tags";
 
         for (int i = 0; i < tags.length; i++) {
             tags[i] = tags[i].replace("'", "''");
@@ -158,33 +168,33 @@ public class Main {
         String nsfwString1 = "";
         String nsfwString2 = "";
         String nsfwJoinString = "";
-        if (!includeNsfwVal){
-            nsfwJoinString += "JOIN bmedia_schema.tags t ON at.tag_name = t.tag_name ";
+        if (!includeNsfwVal) {
+            nsfwJoinString += "JOIN " + tagTableName + " t ON at.tag_name = t.tag_name ";
             nsfwString1 += "t.nsfw = 't' ";
             nsfwString2 += "MAX(CASE t.nsfw WHEN 't' THEN 1 ELSE 0 END) = 0";
         }
 
         String query = "";
-        if(numTags == 0){
-            if(!includeNsfwVal) {
+        if (numTags == 0) {
+            if (!includeNsfwVal) {
                 nsfwString1 = "WHERE " + nsfwString1;
                 nsfwString2 = "HAVING " + nsfwString2;
             }
             query = "SELECT COUNT(*) AS itemCount FROM " +
                     "(SELECT a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" +
-                    " FROM bmedia_schema.art a JOIN bmedia_schema.art_tags_join at ON (a.md5, a.filename) = (at.md5, at.filename) " +
+                    " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.md5, a.filename) = (at.md5, at.filename) " +
                     nsfwJoinString +
                     "GROUP BY (a.md5, a.filename)" + nsfwString2 +
                     ") AS g;";
         } else {
             // for reference: https://elliotchance.medium.com/handling-tags-in-a-sql-database-5597b9894049
-            if(!includeNsfwVal) {
+            if (!includeNsfwVal) {
                 nsfwString1 = "OR  " + nsfwString1;
                 nsfwString2 = " AND " + nsfwString2;
             }
             query = "SELECT COUNT(*) AS itemCount FROM " +
                     "(SELECT a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" +
-                    " FROM bmedia_schema.art a JOIN bmedia_schema.art_tags_join at ON (a.md5, a.filename) = (at.md5, at.filename) " +
+                    " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.md5, a.filename) = (at.md5, at.filename) " +
                     nsfwJoinString +
                     "WHERE at.tag_name IN (" + tag_string + ") " + nsfwString1 +
                     "GROUP BY (a.md5, a.filename) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2 +
@@ -196,7 +206,7 @@ public class Main {
             Statement statement = dbconn.createStatement();
             ResultSet result = statement.executeQuery(query);
 
-            if(result.next()) {
+            if (result.next()) {
                 int totalResults = result.getInt("itemCount");
                 int pages = (int) Math.ceil(totalResults / resultsPerPage);
 
@@ -214,29 +224,32 @@ public class Main {
     }
 
     @RequestMapping(value = "/images/get_thumbnail", produces = "application/json")
-    public ResponseEntity<String> get_image_thumbnail(@RequestParam("md5") String md5,
+    public ResponseEntity<String> get_image_thumbnail(@RequestParam("table_name") String tbName,
+                                                      @RequestParam("md5") String md5,
                                                       @RequestParam("filename") String filename,
-                                                      @RequestParam("thumb_height") Optional<Integer> thumbHeight){
+                                                      @RequestParam("thumb_height") Optional<Integer> thumbHeight) {
         int thumbHeightVal = thumbHeight.orElse(400);
+        String schemaName = "bmedia_schema";
+        String tbNameFull = schemaName + "." + tbName;
 
-        String query = "SELECT file_path FROM bmedia_schema.art WHERE md5='" + md5 + "' AND filename='" + filename + "';";
+        String query = "SELECT file_path FROM " + tbNameFull + " WHERE md5='" + md5 + "' AND filename='" + filename + "';";
 
         String b64Thumb = null;
-        try{
+        try {
             Statement statement = dbconn.createStatement();
             ResultSet result = statement.executeQuery(query);
 
-            if(!result.next()){
+            if (!result.next()) {
                 ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error: no results returned");
             }
 
             String filePath = result.getString("file_path");
             b64Thumb = getThumbnailForImage(filePath, thumbHeightVal);
-            if(b64Thumb == null){
+            if (b64Thumb == null) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error: no results returned from query");
             }
 
-        } catch (SQLException e){
+        } catch (SQLException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
         }
 
@@ -249,27 +262,30 @@ public class Main {
     }
 
     @RequestMapping(value = "/images/get_image_full", produces = "application/json")
-    public ResponseEntity<String> get_image_full(@RequestParam("md5") String md5,
-                                                      @RequestParam("filename") String filename){
+    public ResponseEntity<String> get_image_full(@RequestParam("table_name") String tbName,
+                                                 @RequestParam("md5") String md5,
+                                                 @RequestParam("filename") String filename) {
+        String schemaName = "bmedia_schema";
+        String tbNameFull = schemaName + "." + tbName;
 
-        String query = "SELECT file_path FROM bmedia_schema.art WHERE md5='" + md5 + "' AND filename='" + filename + "';";
+        String query = "SELECT file_path FROM " + tbNameFull + " WHERE md5='" + md5 + "' AND filename='" + filename + "';";
 
         String b64Image = null;
-        try{
+        try {
             Statement statement = dbconn.createStatement();
             ResultSet result = statement.executeQuery(query);
 
-            if(!result.next()){
+            if (!result.next()) {
                 ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error: no results returned");
             }
 
             String filePath = result.getString("file_path");
             b64Image = getFullImage_b64(filePath);
-            if(b64Image == null){
+            if (b64Image == null) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error: no results returned from query");
             }
 
-        } catch (SQLException e){
+        } catch (SQLException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
         }
 
@@ -282,12 +298,16 @@ public class Main {
     }
 
     @RequestMapping(value = "/images/get_tags", produces = "application/json")
-    public ResponseEntity<String> get_image_tags(@RequestParam("md5") String md5,
+    public ResponseEntity<String> get_image_tags(@RequestParam("table_name") String tbName,
+                                                 @RequestParam("md5") String md5,
                                                  @RequestParam("filename") String filename) {
+        String schemaName = "bmedia_schema";
+        String tagJoinTableName = schemaName + "." + tbName + "_tags_join";
+        String tagTableName = schemaName + "." + "tags";
 
         // for reference: https://elliotchance.medium.com/handling-tags-in-a-sql-database-5597b9894049
-        String query = "SELECT at.tag_name, t.nsfw FROM bmedia_schema.tags t " +
-                "JOIN bmedia_schema.art_tags_join at ON t.tag_name = at.tag_name " +
+        String query = "SELECT at.tag_name, t.nsfw FROM " + tagTableName + " t " +
+                "JOIN " + tagJoinTableName + " at ON t.tag_name = at.tag_name " +
                 "WHERE at.md5='" + md5 + "' AND at.filename='" + filename + "';";
 
         String jsonOut = "[";
@@ -313,7 +333,8 @@ public class Main {
 
         return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
     }
-    private String getThumbnailForImage(String imagePath, int thumbHeight){
+
+    private String getThumbnailForImage(String imagePath, int thumbHeight) {
 
         ByteArrayOutputStream boas = new ByteArrayOutputStream();
         String imgExt = FilenameUtils.getExtension(imagePath);
@@ -341,7 +362,7 @@ public class Main {
 
     }
 
-    private String getFullImage_b64(String imagePath){
+    private String getFullImage_b64(String imagePath) {
         ByteArrayOutputStream boas = new ByteArrayOutputStream();
         try {
             BufferedImage img = ImageIO.read(new File(imagePath));
@@ -350,7 +371,7 @@ public class Main {
                 System.out.println("ERROR: Failed to write image to buffer for b64 encoding.");
                 return null;
             }
-        } catch (IOException e){
+        } catch (IOException e) {
             System.out.println("ERROR: IO error while trying to encode image " + imagePath + ". \n" + e.getMessage());
             return null;
         }

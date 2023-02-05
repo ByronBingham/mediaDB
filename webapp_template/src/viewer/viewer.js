@@ -39,8 +39,8 @@ const handleTagsResponse = function(data){
 
 const sendImageRequest = function(md5, filename){    
     // query API
-    let requestString = `http://${apiAddr}/images/get_image_full?md5=${md5}&filename=${filename}`;
-    console.log("Request: " + requestString);
+    let requestString = `http://${apiAddr}/images/get_image_full?table_name=${dbTableName}&md5=${md5}&filename=${filename}`;
+    //console.log("Request: " + requestString);
 
     // send request
     fetch(requestString).then((response) =>{
@@ -52,8 +52,8 @@ const sendImageRequest = function(md5, filename){
 
 const sendTagsRequest = function(md5, filename){    
     // query API
-    let requestString = `http://${apiAddr}/images/get_tags?md5=${md5}&filename=${filename}`;
-    console.log("Request: " + requestString);
+    let requestString = `http://${apiAddr}/images/get_tags?table_name=${dbTableName}&md5=${md5}&filename=${filename}`;
+    //console.log("Request: " + requestString);
 
     // send request
     fetch(requestString).then((response) =>{
