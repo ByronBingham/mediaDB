@@ -7,7 +7,8 @@ module.exports = {
     index: ['./src/webapp_main.js'],
     global: ['./src/globalTemplates.js'],
     results: ['./src/results/resultsPage.js'],
-    viewer: ['./src/viewer/viewer.js']
+    viewer: ['./src/viewer/viewer.js'],
+    editor: ['./src/editor/tagEditor.js']
   },
   output: {
     filename: '[name].js',

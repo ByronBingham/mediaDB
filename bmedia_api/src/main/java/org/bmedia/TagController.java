@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -50,15 +51,21 @@ public class TagController {
     @RequestMapping(value = "/tags/add_tag", produces = "application/json")
     public ResponseEntity<String> addTag(@RequestParam("tag_name") String tagName,
                                          @RequestParam("nsfw") Optional<Boolean> nsfw) {
+        if(tagName == ""){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Cannot have empty tag name in request");
+        }
+
         boolean nsfwVal = nsfw.orElse(false);
         tagName = tagName.replace("'", "''");
 
-        String query = "INSERT (tag_name, nsfw) INTO bmedia_schema.tags VALUES ('" + nsfwVal + "', '" +
-                ((nsfwVal) ? "true" : "false") + "') ON CONFLICT DO NOTHING;";
+        String query = "INSERT INTO bmedia_schema.tags (tag_name, nsfw) VALUES (?, ?) ON CONFLICT (tag_name) DO UPDATE SET nsfw = " +
+                "EXCLUDED.nsfw;";
 
         try {
-            Statement statement = Main.getDbconn().createStatement();
-            ResultSet result = statement.executeQuery(query);
+            PreparedStatement statement = Main.getDbconn().prepareStatement(query);
+            statement.setString(1, tagName);
+            statement.setBoolean(2, nsfwVal);
+            statement.executeUpdate();
         } catch (SQLException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
         }
@@ -71,12 +78,12 @@ public class TagController {
                                             @RequestParam("nsfw") Boolean nsfw) {
         tagName = tagName.replace("'", "''");
 
-        String query = "UPDATE (tag_name, nsfw) INTO bmedia_schema.tags VALUES ('" + nsfw + "', '" +
-                ((nsfw) ? "true" : "false") + "') ON CONFLICT DO UPDATE;";
+        String query = "UPDATE bmedia_schema.tags SET nsfw = " + ((nsfw) ? "TRUE" : "FALSE")
+                + " WHERE tag_name = '" + tagName + "';";
 
         try {
             Statement statement = Main.getDbconn().createStatement();
-            ResultSet result = statement.executeQuery(query);
+            statement.executeUpdate(query);
         } catch (SQLException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
         }

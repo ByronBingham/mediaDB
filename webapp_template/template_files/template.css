@@ -79,3 +79,11 @@ body {
 .page-number:visited {
     color: var(--accent-color-primary);
 }
+
+.tag-edit {
+    background-color: var(--accent-color-primary);
+    margin-top: 0.5vh;
+    margin-bottom: 0.5vh;
+    margin-left: 0.5vw;
+    margin-right: 0.5vw;
+}
