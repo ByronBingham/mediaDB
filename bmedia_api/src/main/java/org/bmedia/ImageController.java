@@ -318,18 +318,26 @@ public class ImageController {
                                                    @RequestParam("md5") String md5,
                                                    @RequestParam("filename") String filename,
                                                    @RequestParam("tag_name") String tagName,
-                                                   @RequestParam("nsfw") Optional<Boolean> nsfw) {
+                                                   @RequestParam("nsfw") Optional<Boolean> nsfw,
+                                                   @RequestParam("overwrite_nsfw") Optional<Boolean> overwriteNsfw) {
         if (tagName.equals("")) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Cannot have empty tag name in request");
         }
 
         boolean nsfwVal = nsfw.orElse(false);
+        boolean overwriteNsfwVal = overwriteNsfw.orElse(false);
         tagName = tagName.replace("'", "''");
         String schemaName = "bmedia_schema";
         String tagJoinTableName = tbName + "_tags_join";
 
-        String query1 = "INSERT INTO " + schemaName + ".tags (tag_name, nsfw) VALUES (?, ?) ON CONFLICT (tag_name) DO UPDATE SET nsfw = " +
-                "EXCLUDED.nsfw;";
+        String query1 = "INSERT INTO " + schemaName + ".tags (tag_name, nsfw) VALUES (?, ?) ON CONFLICT (tag_name) DO";
+        if(overwriteNsfwVal){
+            query1 += " UPDATE SET nsfw = " +
+                    "EXCLUDED.nsfw;";
+        } else {
+            query1 += " NOTHING;";
+        }
+
         String query2 = "INSERT INTO " + schemaName + "." + tagJoinTableName + " (md5, filename, tag_name) VALUES (?, ?, ?)" +
                 " ON CONFLICT DO NOTHING;";
 

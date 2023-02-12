@@ -33,12 +33,20 @@ export class ImageTagConrolBar extends LitElement {
         this.shadowRoot.getElementById("add-tag-button").style.display = "none";
         this.shadowRoot.getElementById("add-tag-form").style.display = "inline";
 
+        this.addEventListener("keyup", function(event) {
+            if (event.keyCode === 13) {
+                this.submitAddTagForm();
+            }
+        });
+
         this.requestUpdate();
     }
 
     closeAddTagForm(){
         this.shadowRoot.getElementById("add-tag-button").style.display = "inline";
         this.shadowRoot.getElementById("add-tag-form").style.display = "none";
+
+        this.removeEventListener("keyup", this);
 
         this.clearAddTagForm();
         this.requestUpdate();
@@ -60,7 +68,7 @@ export class ImageTagConrolBar extends LitElement {
             }
         });
 
-        this.closeAddTagForm();        
+        this.clearAddTagForm();
     }
 
     render(){
@@ -68,10 +76,10 @@ export class ImageTagConrolBar extends LitElement {
                         <button type="button" id="add-tag-button" @click=${this.openAddTagForm}>Add Tag</button>
 
                         <div id="add-tag-form" style="display: none;">
-                            <button type="button" @click=${this.closeAddTagForm}>X</button>
-                            <input type="text" id="tag-name-txt">
-                            <input type="checkbox" id="nsfw-check">
-                            <button type="button" @click=${this.submitAddTagForm}>Submit</button>
+                                <button type="button" @click=${this.closeAddTagForm}>X</button>
+                                <input type="text" id="tag-name-txt">
+                                <input type="checkbox" id="nsfw-check">
+                                <button type="button" @click=${this.submitAddTagForm}>Submit</button>
                         </div>
                         
                     </div>`;
