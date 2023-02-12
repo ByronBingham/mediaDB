@@ -12,7 +12,7 @@ window.onDocLoad = function(){
         sendTagsRequest(md5, filename);
     }
 
-    imageTagList = new ImageTagList();
+    imageTagList = new ImageTagList(md5, filename);
 }
 
 const handleImageResponse = function(data){
@@ -30,10 +30,7 @@ const handleTagsResponse = function(data){
     document.getElementById("tags-sidebar").appendChild(imageTagList);
 
     tagList.forEach(tagData => {
-        let tagName = tagData["tag_name"];
-        let nsfw = tagData["nsfw"];
-        let tagObj = new ImageTag(tagName, nsfw);
-        imageTagList.addTagElement(tagObj);
+        imageTagList.addTagElement(tagData);
     });    
 }
 

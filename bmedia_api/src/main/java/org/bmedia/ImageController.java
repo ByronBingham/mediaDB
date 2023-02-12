@@ -12,6 +12,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -310,6 +311,74 @@ public class ImageController {
         }
 
         return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
+    }
+
+    @RequestMapping(value = "/images/add_tag", produces = "application/json")
+    public ResponseEntity<String> add_tag_to_image(@RequestParam("table_name") String tbName,
+                                                   @RequestParam("md5") String md5,
+                                                   @RequestParam("filename") String filename,
+                                                   @RequestParam("tag_name") String tagName,
+                                                   @RequestParam("nsfw") Optional<Boolean> nsfw) {
+        if (tagName.equals("")) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Cannot have empty tag name in request");
+        }
+
+        boolean nsfwVal = nsfw.orElse(false);
+        tagName = tagName.replace("'", "''");
+        String schemaName = "bmedia_schema";
+        String tagJoinTableName = tbName + "_tags_join";
+
+        String query1 = "INSERT INTO " + schemaName + ".tags (tag_name, nsfw) VALUES (?, ?) ON CONFLICT (tag_name) DO UPDATE SET nsfw = " +
+                "EXCLUDED.nsfw;";
+        String query2 = "INSERT INTO " + schemaName + "." + tagJoinTableName + " (md5, filename, tag_name) VALUES (?, ?, ?)" +
+                " ON CONFLICT DO NOTHING;";
+
+        try {
+            // add tag if not already in tag table
+            PreparedStatement statement1 = Main.getDbconn().prepareStatement(query1);
+            statement1.setString(1, tagName);
+            statement1.setBoolean(2, nsfwVal);
+            statement1.executeUpdate();
+
+            // add entry into join table
+            PreparedStatement statement2 = Main.getDbconn().prepareStatement(query2);
+            statement2.setString(1, md5);
+            statement2.setString(2, filename);
+            statement2.setString(3, tagName);
+            statement2.executeUpdate();
+
+        } catch (SQLException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
+        }
+
+        return ResponseEntity.status(HttpStatus.OK).body("Successfully added tag");
+    }
+
+    @RequestMapping(value = "/images/delete_tag", produces = "application/json")
+    public ResponseEntity<String> delte_tag_for_image(@RequestParam("table_name") String tbName,
+                                                      @RequestParam("md5") String md5,
+                                                      @RequestParam("filename") String filename,
+                                                      @RequestParam("tag_name") String tagName) {
+        if (tagName.equals("")) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Cannot have empty tag name in request");
+        }
+
+        tagName = tagName.replace("'", "''");
+        String schemaName = "bmedia_schema";
+        String tagJoinTableName = tbName + "_tags_join";
+        tagName = tagName.replace("'", "''");
+
+        String query = "DELETE FROM " + schemaName + "." + tagJoinTableName + " WHERE md5 = '" + md5 + "'" +
+                "AND filename = '" + filename + "' AND tag_name = '" + tagName + "';";
+
+        try {
+            Statement statement = Main.getDbconn().createStatement();
+            statement.executeUpdate(query);
+        } catch (SQLException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
+        }
+
+        return ResponseEntity.status(HttpStatus.OK).body("Successfully added tag");
     }
 
     private String getThumbnailForImage(String imagePath, int thumbHeight) {

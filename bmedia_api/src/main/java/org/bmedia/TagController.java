@@ -51,7 +51,7 @@ public class TagController {
     @RequestMapping(value = "/tags/add_tag", produces = "application/json")
     public ResponseEntity<String> addTag(@RequestParam("tag_name") String tagName,
                                          @RequestParam("nsfw") Optional<Boolean> nsfw) {
-        if(tagName == ""){
+        if(tagName.equals("")){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Cannot have empty tag name in request");
         }
 

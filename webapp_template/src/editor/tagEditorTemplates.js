@@ -23,12 +23,6 @@ export class TagEditor extends LitElement {
 export class TagConrolBar extends LitElement {
     constructor(){
         super();
-        this.tagElements = [];
-    }
-
-    addTagElement(element){
-        this.tagElements.push(element);
-        this.requestUpdate();
     }
 
     openAddTagForm(){
@@ -119,7 +113,6 @@ export class TagElement extends LitElement {
 
     updateTag(){
         let nsfwVal = this.shadowRoot.getElementById("nsfw-check").checked;
-        let cleanName = this.name.replaceAll("\\", "\\\\")
 
         fetch(`http://${apiAddr}/tags/update_tag?tag_name=${this.name}&nsfw=${nsfwVal}`);
     }
