@@ -1,4 +1,6 @@
-package org.bmedia;
+package org.bmedia.Processing;
+
+import org.bmedia.Processing.ProcessingGroup;
 
 import java.io.IOException;
 import java.nio.file.*;

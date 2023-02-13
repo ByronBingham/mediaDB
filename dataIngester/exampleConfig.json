@@ -10,6 +10,7 @@
             "auto_tag": true,
             "tag_prob_thres": 0.6,
             "jfif_webm_to_jpg": true,
+            "media_type": "image",
             "valid_extensions":[
                 ".png",
                 ".jpeg",
@@ -27,9 +28,11 @@
             "source_dirs": [
                 "./test_data/memes"
             ],
+            "target_schema": "bmedia_schema",
             "target_db": "MEMES",
             "auto_tag": false,
             "jfif_webm_to_jpg": true,
+            "media_type": "image",
             "valid_extensions":[
                 ".png",
                 ".jpeg",

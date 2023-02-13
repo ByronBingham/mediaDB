@@ -1,5 +1,8 @@
 package org.bmedia;
 
+import org.bmedia.Processing.GroupListener;
+import org.bmedia.Processing.ProcessingGroup;
+
 import java.io.IOException;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
@@ -26,6 +29,10 @@ public class Main {
             }
         }
 
+    }
+
+    public static boolean isRunning(){
+        return running.get();
     }
 
     private static void setupProcessors(){
