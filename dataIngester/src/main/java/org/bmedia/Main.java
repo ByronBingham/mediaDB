@@ -53,22 +53,7 @@ public class Main {
     private static void startGroupListening() {
         while (running.get()) {
             for (GroupListener listener : groupListeners) {
-                WatchKey key;
-                try {
-                    while ((key = listener.getWatchService().take()) != null) {
-                        for (WatchEvent<?> event : key.pollEvents()) {
-                            WatchEvent.Kind kind = event.kind();
-                            if(kind.equals(StandardWatchEventKinds.ENTRY_CREATE)){
-                                // add stuff to queue
-                            } else if(kind.equals(StandardWatchEventKinds.ENTRY_DELETE)){
-                                // add stuff to queue
-                            }
-                        }
-                        key.reset();
-                    }
-                } catch (InterruptedException e){
-                    System.out.println("WARNING: Interrupted exception while getting watch service events");
-                }
+
             }
         }
     }

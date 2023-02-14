@@ -7,8 +7,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -117,6 +116,25 @@ public class ProcessingGroup {
         }
 
         return out;
+    }
+
+    public void updateFileEvents(){
+        WatchKey key;
+        try {
+            while ((key = this.groupListener.getWatchService().take()) != null) {
+                for (WatchEvent<?> event : key.pollEvents()) {
+                    WatchEvent.Kind kind = event.kind();
+                    if(kind.equals(StandardWatchEventKinds.ENTRY_CREATE)){
+                        // add stuff to queue
+                    } else if(kind.equals(StandardWatchEventKinds.ENTRY_DELETE)){
+                        // add stuff to queue
+                    }
+                }
+                key.reset();
+            }
+        } catch (InterruptedException e){
+            System.out.println("WARNING: Interrupted exception while getting watch service events");
+        }
     }
 
     public String getName() {

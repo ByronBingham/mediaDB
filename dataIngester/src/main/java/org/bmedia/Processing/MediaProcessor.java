@@ -1,22 +1,25 @@
 package org.bmedia.Processing;
 
+import org.postgresql.core.Tuple;
+
+import java.nio.file.StandardWatchEventKinds;
 import java.util.concurrent.LinkedBlockingQueue;
 
 abstract public class MediaProcessor <T>{
 
-    protected LinkedBlockingQueue<T> dataQueue;
+    protected LinkedBlockingQueue<QueueAction<T>> actionQueue;
     protected ProcessingGroup group;
 
     protected MediaProcessor(ProcessingGroup group){
-        this.dataQueue = new LinkedBlockingQueue<>();
+        this.actionQueue = new LinkedBlockingQueue<>();
         this.group = group;
     }
 
-    public void addData(T data){
+    public void addAction(T data, String actionType){
         try {
-            this.dataQueue.put(data);
+            this.actionQueue.put(new QueueAction<>(data, actionType));
         } catch (InterruptedException e){
-            System.out.println("WARNING: Interrupted while adding data to queue");
+            System.out.println("WARNING: Interrupted while adding data to add queue");
         }
     }
 
