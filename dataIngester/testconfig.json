@@ -3,7 +3,12 @@
         {
             "name": "AnimeArt",
             "source_dirs": [
-                "./test_data/anime_art"
+                "Z:\\Documents\\Pictures\\Pictures\\Reference\\Art\\Reddit",
+                "Z:\\Documents\\Pictures\\Pictures\\Reference\\Art\\misc",
+                "E:\\Amazon Drive\\Pictures\\Photo_Frame",
+                "Z:\\Documents\\Pictures\\Pictures\\Reference\\Art\\PhoneWallpaper",
+                "Z:\\Documents\\Pictures\\Pictures\\Reference\\Art\\Pixiv",
+                "Z:\\Documents\\Pictures\\Pictures\\Reference\\Art\\Twitter"
             ],
             "target_schema": "bmedia_schema",
             "target_db": "ART",
