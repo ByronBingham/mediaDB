@@ -23,7 +23,7 @@
                 "jfif",
                 "webp"
             ],
-            "chunk_size": 1000,
+            "chunk_size": 10,
             "db_host": "127.0.0.1",
             "db_user": "bmedia_admin",
             "db_password": "changeme"

@@ -1,7 +1,6 @@
 package org.bmedia.Processing;
 
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.time.StopWatch;
 import org.bmedia.Main;
 import org.bmedia.Utils;
 import org.bmedia.tagger.ImageTagger;
@@ -14,14 +13,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
-import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Predicate;
 
 public class ImageProcessor extends MediaProcessor<String> {
 
@@ -37,8 +35,8 @@ public class ImageProcessor extends MediaProcessor<String> {
         }
         @Override
         public void run() {
-            System.out.println("INFO: Timed update called");
             if(!this.imageProcessor.getProcessing()) {
+                System.out.println("INFO: Timed update called");
                 this.imageProcessor.doAtomicProcessing();
             }
         }
@@ -139,11 +137,15 @@ public class ImageProcessor extends MediaProcessor<String> {
 
         // Add image data to query
         ArrayList<String> valueArr = new ArrayList<>();
+
+        ArrayList<String> newPathStrings = new ArrayList<>();
         for (String pathString : pathStrings) {
             if (group.isJfifWebmToJpg() && (FilenameUtils.getExtension(pathString).equals("jfif") ||
                     FilenameUtils.getExtension(pathString).equals("webp"))) {
                 Utils.imageToJpg(pathString);
                 continue;   // grouplistener should pick up the change to the file, so we don't need to do anything here
+            } else {
+                newPathStrings.add(pathString);
             }
 
             String md5 = Utils.getMd5(pathString);
@@ -157,21 +159,26 @@ public class ImageProcessor extends MediaProcessor<String> {
                 fileSizeBytes = Files.size(Path.of(pathString));
                 bimg = ImageIO.read(new File(pathString));
             } catch (IOException e) {
-                System.out.println("ERROR: error getting size of \"" + pathString + "\"");
+                System.out.println("ERROR: error getting size of \"" + pathString + "\". Attempting to convert to a different format");
+                Utils.imageToJpg(pathString);
                 continue;
             }
-            width = bimg.getWidth();
-            height = bimg.getHeight();
+            if(bimg != null) {
+                width = bimg.getWidth();
+                height = bimg.getHeight();
+            }
 
             valueArr.add("('" + md5 + "', '" + filename + "', '" + fullPath + "', '" + width + "', '" + height + "', '" + fileSizeBytes + "')");
         }
+        pathStrings = newPathStrings;
+
 
         if(valueArr.size() == 0){
             System.out.println("ERROR: No sql values produced for adding images to database");
             return;
         }
 
-        query += String.join(",", valueArr.toArray(new String[0])) + "ON CONFLICT (md5, filename) DO NOTHING;";
+        query += String.join(",", valueArr.toArray(new String[0])) + "ON CONFLICT (file_path) DO NOTHING;";
 
         try {
             Statement statement = Main.getDbconn().createStatement();
@@ -212,18 +219,23 @@ public class ImageProcessor extends MediaProcessor<String> {
             for (ImageWithTags img : imagesWithTags) {
                 String filename = FilenameUtils.getName(img.getPathString());
                 String md5 = Utils.getMd5(img.getPathString());
+                long img_id = getIdOfImage(md5, filename);
+                if(img_id == -1){
+                    System.out.println("WARNING: ID not found for image, skipping...");
+                    continue;
+                }
                 if(md5 == null){
                     System.out.println("ERROR: could not get md5 for \"" + img.getPathString() + "\"");
                     continue;
                 }
                 for (String tagName : img.getTags()) {
                     tagName = tagName.replace("'", "''");
-                    joinValues.add("('" + md5 + "','" + filename + "','" + tagName + "')");
+                    joinValues.add("(" + img_id + ",'" + tagName + "')");
                 }
             }
 
-            String joinQuery = "INSERT INTO " + group.getFullTagJoinTableName() + " (md5, filename, tag_name) VALUES " +
-                    String.join(",", joinValues) + "ON CONFLICT (md5, filename, tag_name) DO NOTHING;";
+            String joinQuery = "INSERT INTO " + group.getFullTagJoinTableName() + " (id, tag_name) VALUES " +
+                    String.join(",", joinValues) + "ON CONFLICT (id, tag_name) DO NOTHING;";
 
             try (Statement statement = Main.getDbconn().createStatement()) {
                 statement.executeUpdate(joinQuery);
@@ -231,6 +243,29 @@ public class ImageProcessor extends MediaProcessor<String> {
                 System.out.println("ERROR: SQL error while adding tags to images in database");
             }
         }
+    }
+
+    private long getIdOfImage(String md5, String filename){
+        long idIndex = -1;
+
+        String idQuery = "SELECT (id) FROM " + group.getFullTableName() + " WHERE md5='" + md5 + "' AND filename='" + filename + "'";
+        try {
+            Statement statement = Main.getDbconn().createStatement();
+            ResultSet result = statement.executeQuery(idQuery);
+
+            if (!result.next()) {
+                System.out.println("WARNING: ID index not found");
+                return -1;
+            }
+
+            idIndex = result.getInt("id");
+
+        } catch (SQLException e) {
+            System.out.println("WARNING: SQL ERROR when searching for id index");
+            return -1;
+        }
+
+        return idIndex;
     }
 
     private void deleteImagesFromDB(ArrayList<String> pathStrings) {

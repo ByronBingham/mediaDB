@@ -1,0 +1,14 @@
+{
+    "database_name": "bmediadb",
+    "database_schema": "bmedia_schema",
+    "admin_username": "bmedia_admin",
+    "admin_password": "changeme",
+    "query_username": "bmedia_user",
+    "query_password": "changeme",
+    "tables": [
+        {
+            "table_name": "art",
+            "table_type": "image"
+        }
+    ]
+}

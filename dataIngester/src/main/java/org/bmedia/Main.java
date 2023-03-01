@@ -3,20 +3,27 @@ package org.bmedia;
 import org.apache.commons.io.FileUtils;
 import org.bmedia.Processing.GroupListener;
 import org.bmedia.Processing.ProcessingGroup;
-import org.w3c.dom.ls.LSOutput;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Main {
+
+    private static class TimedUpdate extends TimerTask {
+
+        public TimedUpdate() {
+        }
+
+        @Override
+        public void run() {
+            Main.initialDbUpdate();
+        }
+    }
+
+    private static TimedUpdate timedUpdate;
+    private static Timer timer = new Timer();
 
     private static ArrayList<ProcessingGroup> processingGroups;
     private static ArrayList<GroupListener> groupListeners;
@@ -24,11 +31,13 @@ public class Main {
 
     private static Connection dbconn = null;
 
+    private static AtomicBoolean checkingFs = new AtomicBoolean(false);
+
     public static void main(String[] args) {
 
         try {
             // TODO: make part of config
-            dbconn = DriverManager.getConnection("jdbc:postgresql://localhost:5432/bmedia", "bmedia_admin", "changeme");
+            dbconn = DriverManager.getConnection("jdbc:postgresql://localhost:5432/bmediadb", "bmedia_admin", "changeme");
         } catch (SQLException e) {
             System.out.println("ERROR: Unable to establish connection to database. Exiting...");
             return;
@@ -36,7 +45,8 @@ public class Main {
 
         // TODO: change to arg val
         processingGroups = ProcessingGroup.createGroupsFromFile(args[0]);
-        initialDbUpdate();
+        timedUpdate = new TimedUpdate();
+        timer.schedule(timedUpdate, 10 * 1000, 600 * 1000); // TODO: make var
 
     }
 
@@ -48,6 +58,13 @@ public class Main {
      *
      */
     private static void initialDbUpdate() {
+        if(!checkingFs.get()){
+            checkingFs.set(true);
+            System.out.println("INFO: Running check for missing files");
+        }
+        else {
+            return;
+        }
         for (ProcessingGroup group : processingGroups) {
             // Get list of paths from DB
             String query = "SELECT file_path FROM " + group.getFullTableName() + ";";
@@ -75,8 +92,8 @@ public class Main {
                 Collection<File> files = FileUtils.listFiles(new File(path), tmp, true);
                 for (File file : files) {
                     try {
-                        fsPaths.add(file.getCanonicalPath());
-                    } catch (IOException e){
+                        fsPaths.add(file.getAbsolutePath());
+                    } catch (Exception e) {
                         System.out.println("ERROR: Issue getting the canonical path of file \"" + file + "\"");
                     }
                 }
@@ -104,6 +121,7 @@ public class Main {
         }
 
         System.out.println("INFO: Finished queuing initial DB update");
+        checkingFs.set(false);
     }
 
     public static Connection getDbconn() {

@@ -50,7 +50,8 @@ public class ImageTagger {
             }
             if(!errOut.equals("")){
                 if(!errOut.contains("Cleanup called")) {
-                    System.out.println("WARNING: DD did not exit successfully");
+                    System.out.println("WARNING: DD did not exit successfully: ");
+                    System.out.println(errOut);
                 }
             }
 

@@ -1,0 +1,61 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Database Config Schema",
+    "description": "Schema for configuring a media database",
+    "type": "object",
+    "properties": {
+        "database_name":
+        {
+            "description": "Name of the database to create",
+            "type": "string"
+        },
+        "schema_name":
+        {
+            "description": "Name of the schema to use for the database",
+            "type": "string"
+        },
+        "admin_username":
+        {
+            "description": "Name the user that will have read and write permissions on the database",
+            "type": "string"
+        },
+        "admin_password":
+        {
+            "description": "Password for the user that will have read and write permissions on the database",
+            "type": "string",
+            "default": "changeme"
+        },
+        "query_username":
+        {
+            "description": "Name the user that will only have permissions to query (read-only)",
+            "type": "string"
+        },
+        "query_password":
+        {
+            "description": "Password for the user that will have read and write permissions on the database",
+            "type": "string",
+            "default": "changeme"
+        },
+        "tables":
+        {
+            "description": "List of tables to create and their types",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "table_name":
+                    {
+                        "description": "Name of table to create",
+                        "type": "string"
+                    },
+                    "table_type":
+                    {
+                        "description": "Type of table to create",
+                        "type": "string",
+                        "enum": ["image", "music", "video", "image-collection", "playlist"]
+                    }
+                }
+            }
+        }
+    }
+}
