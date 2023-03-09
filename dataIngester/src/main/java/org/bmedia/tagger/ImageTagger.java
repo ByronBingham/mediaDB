@@ -10,9 +10,13 @@ public class ImageTagger {
         ArrayList<String> fullCommand = new ArrayList<>();
         String out = "";
 
-        String ddcmd = "..\\venv\\Scripts\\python.exe -m deepdanbooru evaluate --project-path \"..\\DeepDanbooru\" --allow-gpu";
+        String ddcmd = "../venv/Scripts/python.exe -m deepdanbooru evaluate --project-path \"../DeepDanbooru\" --allow-gpu";
         for(String path: imagePaths){
-            ddcmd += " \"" + path + "\" ";
+            if(path.contains("\"")){
+                System.out.println("ERROR: Illegal character '\"' found in path");
+                continue;
+            }
+            ddcmd += " '" + path.replace("'", "''") + "' ";
         }
 
         if(System.getProperty("os.name").toLowerCase().contains("windows")){
@@ -49,7 +53,10 @@ public class ImageTagger {
                 errOut += errLine + "\n";
             }
             if(!errOut.equals("")){
-                if(!errOut.contains("Cleanup called")) {
+                if(errOut.contains("not exist")){
+                    System.out.println("WARNING: Filed passed into DD did not exist: ");
+                    System.out.println(errOut);
+                }else if(!errOut.contains("Cleanup called")) {
                     System.out.println("WARNING: DD did not exit successfully: ");
                     System.out.println(errOut);
                 }

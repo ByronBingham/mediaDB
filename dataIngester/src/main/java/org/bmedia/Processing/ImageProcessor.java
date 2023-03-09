@@ -17,6 +17,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -96,6 +97,9 @@ public class ImageProcessor extends MediaProcessor<String> {
     }
 
     public synchronized void doAtomicProcessing(){
+        if(this.processing.get()){
+            return;
+        }
         this.setProcessing(true);
         // do processing
         ArrayList<String> addFiles = new ArrayList<>();
@@ -133,6 +137,14 @@ public class ImageProcessor extends MediaProcessor<String> {
             System.out.println("INFO: No paths provided to add");
             return;
         }
+        ArrayList<ImageWithTags> imagesWithAutoTags = null;
+        if (group.isAuto_tag()) {
+            imagesWithAutoTags = ImageTagger.getTagsForImages(pathStrings, group.getTagProbabilityThreshold());
+            if(imagesWithAutoTags.size() == 0){
+                System.out.println("ERROR: Something went wrong running DeepDanbooru: no tags were returned");
+                return;
+            }
+        }
         String query = "INSERT INTO " + group.getFullTableName() + " (md5, filename, file_path, resolution_width, resolution_height, file_size_bytes) VALUES ";
 
         // Add image data to query
@@ -149,8 +161,8 @@ public class ImageProcessor extends MediaProcessor<String> {
             }
 
             String md5 = Utils.getMd5(pathString);
-            String filename = FilenameUtils.getName(pathString);
-            String fullPath = Path.of(pathString).toAbsolutePath().toString();
+            String filename = FilenameUtils.getName(pathString).replace("'", "''");
+            String fullPath = Path.of(pathString).toAbsolutePath().toString().replace("'", "''");
             long fileSizeBytes = 0;
             int width = 0;
             int height = 0;
@@ -188,60 +200,71 @@ public class ImageProcessor extends MediaProcessor<String> {
             return;
         }
 
+        // Add at least one tag to every image so all images show up in searches
+        ArrayList<ImageWithTags> imagesWithTags = new ArrayList<>();
+        for(String path: pathStrings){
+            imagesWithTags.add(new ImageWithTags(path, new ArrayList<>(Arrays.asList(new String[]{"placeholder"}))));
+        }
+        addTagsToImageInDb(imagesWithTags);
+
+
         if (group.isAuto_tag()) {
-            ArrayList<ImageWithTags> imagesWithTags = ImageTagger.getTagsForImages(pathStrings, group.getTagProbabilityThreshold());
-            if(imagesWithTags.size() < 1){
-                System.out.println("WARNING: No tags returned from auto-tagging");
-                return;
+            addTagsToImageInDb(imagesWithAutoTags);
+        }
+    }
+
+    private void addTagsToImageInDb(ArrayList<ImageWithTags> imagesWithTags){
+        if(imagesWithTags.size() < 1){
+            System.out.println("WARNING: No tags returned from auto-tagging");
+            return;
+        }
+
+        // Add tags to DB
+        ArrayList<String> tagValues = new ArrayList<>();
+        for (ImageWithTags img : imagesWithTags) {
+            for (String tagName : img.getTags()) {
+                tagName = tagName.replace("'", "''");
+                tagValues.add("('" + tagName + "', false)");
             }
+        }
 
-            // Add tags to DB
-            ArrayList<String> tagValues = new ArrayList<>();
-            for (ImageWithTags img : imagesWithTags) {
-                for (String tagName : img.getTags()) {
-                    tagName = tagName.replace("'", "''");
-                    tagValues.add("('" + tagName + "', false)");
-                }
+        String tagQuery = "INSERT INTO " + group.getTargetTableSchema() + ".tags (tag_name, nsfw) VALUES " +
+                String.join(",", tagValues) + "ON CONFLICT (tag_name) DO NOTHING;";
+
+        try (Statement statement = Main.getDbconn().createStatement()) {
+            statement.executeUpdate(tagQuery);
+        } catch (SQLException e) {
+            System.out.println("ERROR: SQL error while adding tags to database");
+            return;
+        }
+
+        // Add tags to images in DB
+        ArrayList<String> joinValues = new ArrayList<>();
+        for (ImageWithTags img : imagesWithTags) {
+            String filename = FilenameUtils.getName(img.getPathString());
+            String md5 = Utils.getMd5(img.getPathString());
+            long img_id = getIdOfImage(md5, filename);
+            if(img_id == -1){
+                System.out.println("WARNING: ID not found for image, skipping...");
+                continue;
             }
-
-            String tagQuery = "INSERT INTO " + group.getTargetTableSchema() + ".tags (tag_name, nsfw) VALUES " +
-                    String.join(",", tagValues) + "ON CONFLICT (tag_name) DO NOTHING;";
-
-            try (Statement statement = Main.getDbconn().createStatement()) {
-                statement.executeUpdate(tagQuery);
-            } catch (SQLException e) {
-                System.out.println("ERROR: SQL error while adding tags to database");
-                return;
+            if(md5 == null){
+                System.out.println("ERROR: could not get md5 for \"" + img.getPathString() + "\"");
+                continue;
             }
-
-            // Add tags to images in DB
-            ArrayList<String> joinValues = new ArrayList<>();
-            for (ImageWithTags img : imagesWithTags) {
-                String filename = FilenameUtils.getName(img.getPathString());
-                String md5 = Utils.getMd5(img.getPathString());
-                long img_id = getIdOfImage(md5, filename);
-                if(img_id == -1){
-                    System.out.println("WARNING: ID not found for image, skipping...");
-                    continue;
-                }
-                if(md5 == null){
-                    System.out.println("ERROR: could not get md5 for \"" + img.getPathString() + "\"");
-                    continue;
-                }
-                for (String tagName : img.getTags()) {
-                    tagName = tagName.replace("'", "''");
-                    joinValues.add("(" + img_id + ",'" + tagName + "')");
-                }
+            for (String tagName : img.getTags()) {
+                tagName = tagName.replace("'", "''");
+                joinValues.add("(" + img_id + ",'" + tagName + "')");
             }
+        }
 
-            String joinQuery = "INSERT INTO " + group.getFullTagJoinTableName() + " (id, tag_name) VALUES " +
-                    String.join(",", joinValues) + "ON CONFLICT (id, tag_name) DO NOTHING;";
+        String joinQuery = "INSERT INTO " + group.getFullTagJoinTableName() + " (id, tag_name) VALUES " +
+                String.join(",", joinValues) + "ON CONFLICT (id, tag_name) DO NOTHING;";
 
-            try (Statement statement = Main.getDbconn().createStatement()) {
-                statement.executeUpdate(joinQuery);
-            } catch (SQLException e) {
-                System.out.println("ERROR: SQL error while adding tags to images in database");
-            }
+        try (Statement statement = Main.getDbconn().createStatement()) {
+            statement.executeUpdate(joinQuery);
+        } catch (SQLException e) {
+            System.out.println("ERROR: SQL error while adding tags to images in database");
         }
     }
 

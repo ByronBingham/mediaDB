@@ -36,7 +36,7 @@ public class ImageController {
         boolean includeThumbVal = includeThumb.orElse(false);
         int thumbHeightVal = thumbHeight.orElse(400);
         boolean includeNsfwVal = includeNsfw.orElse(false);
-        String schemaName = "bmedia_schema";
+        String schemaName = ApiSettings.getSchemaName();
         String tbNameFull = schemaName + "." + tbName;
         String tagJoinTableName = schemaName + "." + tbName + "_tags_join";
         String tagTableName = schemaName + "." + "tags";
@@ -57,8 +57,8 @@ public class ImageController {
         String nsfwJoinString = "";
         if (!includeNsfwVal) {
             nsfwJoinString += "JOIN " + tagTableName + " t ON at.tag_name = t.tag_name ";
-            nsfwString1 += "t.nsfw = 't' ";
-            nsfwString2 += "MAX(CASE t.nsfw WHEN 't' THEN 1 ELSE 0 END) = 0";
+            nsfwString1 += "t.nsfw = TRUE ";
+            nsfwString2 += "MAX(CASE t.nsfw WHEN TRUE THEN 1 ELSE 0 END) = 0";
         }
 
         String query = "";
@@ -67,10 +67,10 @@ public class ImageController {
                 nsfwString1 = "WHERE " + nsfwString1;
                 nsfwString2 = "HAVING " + nsfwString2;
             }
-            query = "SELECT a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
-                    " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.md5, a.filename) = (at.md5, at.filename) " +
+            query = "SELECT a.id,a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
+                    " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.id) = (at.id) " +
                     nsfwJoinString +
-                    "GROUP BY (a.md5, a.filename)" + nsfwString2 +
+                    "GROUP BY (a.id)" + nsfwString2 + " ORDER BY a.id DESC" +
                     " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage + ";";
         } else {
             // for reference: https://elliotchance.medium.com/handling-tags-in-a-sql-database-5597b9894049
@@ -78,11 +78,11 @@ public class ImageController {
                 nsfwString1 = "OR  " + nsfwString1;
                 nsfwString2 = " AND " + nsfwString2;
             }
-            query = "SELECT a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
-                    " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.md5, a.filename) = (at.md5, at.filename) " +
+            query = "SELECT a.id,a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
+                    " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.id) = (at.id) " +
                     nsfwJoinString +
                     "WHERE at.tag_name IN (" + tag_string + ") " + nsfwString1 +
-                    "GROUP BY (a.md5, a.filename) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2 +
+                    "GROUP BY (a.id) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2 + " ORDER BY a.id DESC" +
                     " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage + ";";
         }
 
@@ -93,6 +93,7 @@ public class ImageController {
 
             ArrayList<String> jsonEntries = new ArrayList<>();
             while (result.next()) {
+                long id = result.getLong("id");
                 String md5 = result.getString("md5");
                 String filename = result.getString("filename");
                 int resolutionWidth = result.getInt("resolution_width");
@@ -100,6 +101,7 @@ public class ImageController {
                 int fileSizeBytes = result.getInt("file_size_bytes");
 
                 String jsonEntry = "{" +
+                        "\"id\": " + id + "," +
                         "\"md5\": \"" + md5 + "\"," +
                         "\"filename\": \"" + filename + "\"," +
                         "\"resolution_width\": " + resolutionWidth + "," +
@@ -133,7 +135,7 @@ public class ImageController {
                                                                   @RequestParam("results_per_page") int resultsPerPage,
                                                                   @RequestParam("include_nsfw") Optional<Boolean> includeNsfw) {
         boolean includeNsfwVal = includeNsfw.orElse(false);
-        String schemaName = "bmedia_schema";
+        String schemaName = ApiSettings.getSchemaName();
         String tbNameFull = schemaName + "." + tbName;
         String tagJoinTableName = schemaName + "." + tbName + "_tags_join";
         String tagTableName = schemaName + "." + "tags";
@@ -149,8 +151,8 @@ public class ImageController {
         String nsfwJoinString = "";
         if (!includeNsfwVal) {
             nsfwJoinString += "JOIN " + tagTableName + " t ON at.tag_name = t.tag_name ";
-            nsfwString1 += "t.nsfw = 't' ";
-            nsfwString2 += "MAX(CASE t.nsfw WHEN 't' THEN 1 ELSE 0 END) = 0";
+            nsfwString1 += "t.nsfw = TRUE ";
+            nsfwString2 += "MAX(CASE t.nsfw WHEN TRUE THEN 1 ELSE 0 END) = 0";
         }
 
         String query = "";
@@ -160,10 +162,10 @@ public class ImageController {
                 nsfwString2 = "HAVING " + nsfwString2;
             }
             query = "SELECT COUNT(*) AS itemCount FROM " +
-                    "(SELECT a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" +
-                    " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.md5, a.filename) = (at.md5, at.filename) " +
+                    "(SELECT a.id" +
+                    " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.id) = (at.id) " +
                     nsfwJoinString +
-                    "GROUP BY (a.md5, a.filename)" + nsfwString2 +
+                    "GROUP BY (a.id)" + nsfwString2 +
                     ") AS g;";
         } else {
             // for reference: https://elliotchance.medium.com/handling-tags-in-a-sql-database-5597b9894049
@@ -172,11 +174,11 @@ public class ImageController {
                 nsfwString2 = " AND " + nsfwString2;
             }
             query = "SELECT COUNT(*) AS itemCount FROM " +
-                    "(SELECT a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" +
-                    " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.md5, a.filename) = (at.md5, at.filename) " +
+                    "(SELECT a.id" +
+                    " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.id) = (at.id) " +
                     nsfwJoinString +
                     "WHERE at.tag_name IN (" + tag_string + ") " + nsfwString1 +
-                    "GROUP BY (a.md5, a.filename) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2 +
+                    "GROUP BY (a.id) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2 +
                     ") AS g;";
         }
 
@@ -204,14 +206,13 @@ public class ImageController {
 
     @RequestMapping(value = "/images/get_thumbnail", produces = "application/json")
     public ResponseEntity<String> get_image_thumbnail(@RequestParam("table_name") String tbName,
-                                                      @RequestParam("md5") String md5,
-                                                      @RequestParam("filename") String filename,
+                                                      @RequestParam("id") long id,
                                                       @RequestParam("thumb_height") Optional<Integer> thumbHeight) {
         int thumbHeightVal = thumbHeight.orElse(400);
-        String schemaName = "bmedia_schema";
+        String schemaName = ApiSettings.getSchemaName();
         String tbNameFull = schemaName + "." + tbName;
 
-        String query = "SELECT file_path FROM " + tbNameFull + " WHERE md5='" + md5 + "' AND filename='" + filename + "';";
+        String query = "SELECT file_path FROM " + tbNameFull + " WHERE id='" + id + "';";
 
         String b64Thumb = null;
         try {
@@ -233,8 +234,7 @@ public class ImageController {
         }
 
         String jsonOut = "{" +
-                "\"md5\": \"" + md5 + "\"," +
-                "\"filename\": \"" + filename + "\"," +
+                "\"id\": \"" + id + "\"," +
                 "\n\"thumb_base64\": \"" + b64Thumb + "\"\n}";
 
         return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
@@ -242,12 +242,11 @@ public class ImageController {
 
     @RequestMapping(value = "/images/get_image_full", produces = "application/json")
     public ResponseEntity<String> get_image_full(@RequestParam("table_name") String tbName,
-                                                 @RequestParam("md5") String md5,
-                                                 @RequestParam("filename") String filename) {
-        String schemaName = "bmedia_schema";
+                                                 @RequestParam("id") long id) {
+        String schemaName = ApiSettings.getSchemaName();
         String tbNameFull = schemaName + "." + tbName;
 
-        String query = "SELECT file_path FROM " + tbNameFull + " WHERE md5='" + md5 + "' AND filename='" + filename + "';";
+        String query = "SELECT file_path FROM " + tbNameFull + " WHERE id=" + id + ";";
 
         String b64Image = null;
         try {
@@ -269,8 +268,7 @@ public class ImageController {
         }
 
         String jsonOut = "{" +
-                "\"md5\": \"" + md5 + "\"," +
-                "\"filename\": \"" + filename + "\"," +
+                "\"id\": \"" + id + "\"," +
                 "\n\"image_base64\": \"" + b64Image + "\"\n}";
 
         return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
@@ -278,16 +276,14 @@ public class ImageController {
 
     @RequestMapping(value = "/images/get_tags", produces = "application/json")
     public ResponseEntity<String> get_image_tags(@RequestParam("table_name") String tbName,
-                                                 @RequestParam("md5") String md5,
-                                                 @RequestParam("filename") String filename) {
-        String schemaName = "bmedia_schema";
+                                                 @RequestParam("id") long id) {
+        String schemaName = ApiSettings.getSchemaName();
         String tagJoinTableName = schemaName + "." + tbName + "_tags_join";
         String tagTableName = schemaName + "." + "tags";
 
-        // for reference: https://elliotchance.medium.com/handling-tags-in-a-sql-database-5597b9894049
         String query = "SELECT at.tag_name, t.nsfw FROM " + tagTableName + " t " +
                 "JOIN " + tagJoinTableName + " at ON t.tag_name = at.tag_name " +
-                "WHERE at.md5='" + md5 + "' AND at.filename='" + filename + "';";
+                "WHERE at.id=" + id + ";";
 
         String jsonOut = "[";
         try {
@@ -315,8 +311,7 @@ public class ImageController {
 
     @RequestMapping(value = "/images/add_tag", produces = "application/json")
     public ResponseEntity<String> add_tag_to_image(@RequestParam("table_name") String tbName,
-                                                   @RequestParam("md5") String md5,
-                                                   @RequestParam("filename") String filename,
+                                                   @RequestParam("id") long id,
                                                    @RequestParam("tag_name") String tagName,
                                                    @RequestParam("nsfw") Optional<Boolean> nsfw,
                                                    @RequestParam("overwrite_nsfw") Optional<Boolean> overwriteNsfw) {
@@ -327,7 +322,7 @@ public class ImageController {
         boolean nsfwVal = nsfw.orElse(false);
         boolean overwriteNsfwVal = overwriteNsfw.orElse(false);
         tagName = tagName.replace("'", "''");
-        String schemaName = "bmedia_schema";
+        String schemaName = ApiSettings.getSchemaName();
         String tagJoinTableName = tbName + "_tags_join";
 
         String query1 = "INSERT INTO " + schemaName + ".tags (tag_name, nsfw) VALUES (?, ?) ON CONFLICT (tag_name) DO";
@@ -338,7 +333,7 @@ public class ImageController {
             query1 += " NOTHING;";
         }
 
-        String query2 = "INSERT INTO " + schemaName + "." + tagJoinTableName + " (md5, filename, tag_name) VALUES (?, ?, ?)" +
+        String query2 = "INSERT INTO " + schemaName + "." + tagJoinTableName + " (id, tag_name) VALUES (?, ?)" +
                 " ON CONFLICT DO NOTHING;";
 
         try {
@@ -350,9 +345,8 @@ public class ImageController {
 
             // add entry into join table
             PreparedStatement statement2 = Main.getDbconn().prepareStatement(query2);
-            statement2.setString(1, md5);
-            statement2.setString(2, filename);
-            statement2.setString(3, tagName);
+            statement2.setLong(1, id);
+            statement2.setString(2, tagName);
             statement2.executeUpdate();
 
         } catch (SQLException e) {
@@ -364,20 +358,19 @@ public class ImageController {
 
     @RequestMapping(value = "/images/delete_tag", produces = "application/json")
     public ResponseEntity<String> delte_tag_for_image(@RequestParam("table_name") String tbName,
-                                                      @RequestParam("md5") String md5,
-                                                      @RequestParam("filename") String filename,
+                                                      @RequestParam("id") String id,
                                                       @RequestParam("tag_name") String tagName) {
         if (tagName.equals("")) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Cannot have empty tag name in request");
         }
 
         tagName = tagName.replace("'", "''");
-        String schemaName = "bmedia_schema";
+        String schemaName = ApiSettings.getSchemaName();
         String tagJoinTableName = tbName + "_tags_join";
         tagName = tagName.replace("'", "''");
 
-        String query = "DELETE FROM " + schemaName + "." + tagJoinTableName + " WHERE md5 = '" + md5 + "'" +
-                "AND filename = '" + filename + "' AND tag_name = '" + tagName + "';";
+        String query = "DELETE FROM " + schemaName + "." + tagJoinTableName + " WHERE id = '" + id + "'" +
+                " AND tag_name = '" + tagName + "';";
 
         try {
             Statement statement = Main.getDbconn().createStatement();

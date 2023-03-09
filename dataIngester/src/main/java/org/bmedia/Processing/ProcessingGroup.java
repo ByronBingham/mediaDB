@@ -152,7 +152,7 @@ public class ProcessingGroup {
         return jfifWebmToJpg;
     }
 
-    public ArrayList<String> getValid_extensions() {
+    public ArrayList<String> getValidExtensions() {
         return valid_extensions;
     }
 

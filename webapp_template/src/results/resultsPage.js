@@ -20,32 +20,29 @@ window.onDocLoad = function(){
     }
 }
 
-const handThumbResponse = function(data){
-    let md5 = data["md5"];
-    let filename = data["filename"];
+const handleThumbResponse = function(data){
+    let id = data["id"];
     let b64Thumb = data["thumb_base64"];
 
-    resultPage.addResultElement(new ResultPageElement(md5, filename, b64Thumb));
+    resultPage.addResultElement(new ResultPageElement(id, b64Thumb));
 }
 
 const handleSearchResponse = function(data){
     document.getElementById("results-div").appendChild(resultPage);
 
     data.forEach((obj) => {
-        let md5 = obj["md5"];
-        let filename = obj["filename"];
+        let id = obj["id"];
         let thumbHeight = 200;
 
-        fetch(`http://${apiAddr}/images/get_thumbnail?table_name=${dbTableName}&md5=${md5}&filename=${filename}&thumb_height=${thumbHeight}`).then((response) =>{
+        fetch(`http://${apiAddr}/images/get_thumbnail?table_name=${dbTableName}&id=${id}&thumb_height=${thumbHeight}`).then((response) =>{
             if(response.ok){
                 return response.json();
             } else {
                 console.log("ERROR fetching thumbnail for image\n" +
-                "MD5: " + md5 + "\n" +
-                "Filename: " + filename)
+                "ID: " + id)
             }
         }
-        ).then(handThumbResponse);
+        ).then(handleThumbResponse);
 
     });
 }

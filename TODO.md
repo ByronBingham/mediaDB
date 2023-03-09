@@ -1,4 +1,6 @@
 # TODO
+ - make script that creates database based on config file
+   - change PK from filename to file_path
  - add more metadata to tables
    - music: artist, albumn, genre (just use tags maybe?), etc. link to cover art?
  - add GUI to edit tags and tag categories

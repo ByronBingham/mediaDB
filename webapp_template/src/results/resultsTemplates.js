@@ -2,16 +2,15 @@ import { LitElement, html } from 'lit-element';
 
 export class ResultPageElement extends LitElement {
 
-    constructor(md5, filename, b64image){
+    constructor(id, b64image){
         super();
-        this.md5 = md5;
-        this.filename = filename;
+        this.id = id;
         this.imageData = b64image;
     }
 
     openImage(){
-        console.log("Opening Image with md5=" + this.md5 + " and filename=" + this.filename);
-        window.location = `/${webapp_name}/imagePage.html?md5=${this.md5}&filename=${this.filename}`;
+        console.log("Opening Image with id=" + this.id);
+        window.location = `/${webapp_name}/imagePage.html?id=${this.id}`;
     }
 
     render(){

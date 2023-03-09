@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 @SpringBootApplication
 @RestController
@@ -19,12 +21,17 @@ public class Main {
     private static Connection dbconn = null;
 
     public static void main(String[] args) {
+        ApiSettings.init(args[0]);
+
         try {
-            dbconn = DriverManager.getConnection("jdbc:postgresql://localhost:5432/bmedia", "bmedia_admin", "changeme");
+            dbconn = DriverManager.getConnection("jdbc:postgresql://" + ApiSettings.getDbHostName() + ":" +
+                            ApiSettings.getDbHostPort() + "/" + ApiSettings.getDbName(),
+                    ApiSettings.getAdminUsername(), ApiSettings.getAdminPassword());
         } catch (SQLException e) {
             System.out.println("ERROR: Unable to establish connection to database. Exiting...");
             return;
         }
+        args = (new ArrayList<>((Arrays.asList(args))).subList(1, args.length)).toArray(new String[0]);
         SpringApplication.run(Main.class, args);
     }
 

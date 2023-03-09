@@ -3,11 +3,8 @@ import { LitElement, html } from 'lit-element';
 
 export class IndexPage extends LitElement {
 
-    constructor(md5, filename, imageData){
+    constructor(){
         super();
-        this.md5 = md5;
-        this.filename = filename;
-        this.imageData = imageData;
     }
 
     viewImageFullScreen(){

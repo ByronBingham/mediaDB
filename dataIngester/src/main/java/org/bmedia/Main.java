@@ -1,11 +1,14 @@
 package org.bmedia;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.bmedia.Processing.GroupListener;
 import org.bmedia.Processing.ProcessingGroup;
 
 import java.io.File;
+import java.io.IOException;
 import java.sql.*;
+import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -30,23 +33,37 @@ public class Main {
     private static AtomicBoolean running = new AtomicBoolean(true);
 
     private static Connection dbconn = null;
+    private static IngesterConfig config = null;
 
     private static AtomicBoolean checkingFs = new AtomicBoolean(false);
 
     public static void main(String[] args) {
 
+        if(args.length != 1){
+            System.out.println("Invalid or missing arguments: there should be one argument that points to the ingester config file");
+            return;
+        }
         try {
-            // TODO: make part of config
-            dbconn = DriverManager.getConnection("jdbc:postgresql://localhost:5432/bmediadb", "bmedia_admin", "changeme");
+            config = new IngesterConfig(args[0]);
+        }catch (IOException | org.json.simple.parser.ParseException e){
+            System.out.println("ERROR: Could not read/parse the provided config file: ");
+            e.printStackTrace();
+            return;
+        }
+
+        try {
+            String tmp = "jdbc:postgresql://" + config.getDbHostname() + ":" + config.getDbHostPort() +
+                    "/" + config.getDbName();
+            dbconn = DriverManager.getConnection("jdbc:postgresql://" + config.getDbHostname() + ":" + config.getDbHostPort() +
+                    "/" + config.getDbName(), "bmedia_admin", "changeme");
         } catch (SQLException e) {
             System.out.println("ERROR: Unable to establish connection to database. Exiting...");
             return;
         }
 
-        // TODO: change to arg val
         processingGroups = ProcessingGroup.createGroupsFromFile(args[0]);
         timedUpdate = new TimedUpdate();
-        timer.schedule(timedUpdate, 10 * 1000, 600 * 1000); // TODO: make var
+        timer.schedule(timedUpdate, config.getTimedUpdateDelaySec() * 1000, config.getTimedUpdateIntervalSec() * 1000);
 
     }
 
@@ -88,7 +105,11 @@ public class Main {
             // Get all filesystem paths
             HashSet<String> fsPaths = new HashSet<>();
             for (String path : group.getSourceDirs()) {
-                String[] tmp = group.getValid_extensions().toArray(new String[0]);
+                String[] tmp = group.getValidExtensions().toArray(new String[0]);
+                if(tmp == null){
+                    System.out.println("ERROR: no valid extensions were specified");
+                    return;
+                }
                 Collection<File> files = FileUtils.listFiles(new File(path), tmp, true);
                 for (File file : files) {
                     try {
@@ -109,7 +130,7 @@ public class Main {
                 }
 
                 for (String dbPath : dbPaths) {
-                    if (!fsPaths.contains(dbPath) && false) { // TODO: make config flag to clean broken file paths from DB
+                    if (!fsPaths.contains(dbPath) && config.removeBrokenPaths()) {
                         // a path in the database no longer exists in the file system
                         group.deleteFile(dbPath);
                     }

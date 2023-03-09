@@ -54,11 +54,16 @@ public class GroupListener extends Thread {
                     String canonicalFile = null;
                     try{
                         canonicalFile = new File(basePath.resolve((Path) event.context()).toString()).getCanonicalPath();
-                        /*if(group.isJfifWebmToJpg() &&
-                                (FilenameUtils.getExtension(canonicalFile).equals("webp") || FilenameUtils.getExtension(canonicalFile).equals("jfif"))){
-
+                        boolean validExtension = false;
+                        for(String extension: group.getValidExtensions()){
+                            if(canonicalFile.contains(extension)){
+                                validExtension = true;
+                            }
+                        }
+                        if(!validExtension){
+                            System.out.println("INFO: Invalid file type found. File: \"" + canonicalFile + "\"");
                             continue;
-                        }*/
+                        }
                     } catch (IOException e){
                         System.out.println("ERROR: Could not get the canonical path for \"" + basePath.resolve((Path) event.context()) + "\"");
                         return;

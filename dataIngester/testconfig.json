@@ -1,5 +1,5 @@
 {
-    "ingest_groups":[
+    "ingest_groups": [
         {
             "name": "AnimeArt",
             "source_dirs": [
@@ -23,10 +23,39 @@
                 "jfif",
                 "webp"
             ],
-            "chunk_size": 10,
+            "chunk_size": 50,
+            "db_host": "127.0.0.1",
+            "db_user": "bmedia_admin",
+            "db_password": "changeme"
+        },
+        {
+            "name": "NSFW Images",
+            "source_dirs": [
+                "Z:\\Documents\\Pictures\\Pictures\\Reference\\Art\\IRL"
+            ],
+            "target_schema": "bmedia_schema",
+            "target_db": "NSFW_IMAGES",
+            "auto_tag": true,
+            "tag_prob_thres": 0.6,
+            "jfif_webm_to_jpg": true,
+            "media_type": "image",
+            "valid_extensions":[
+                "png",
+                "jpeg",
+                "jpg",
+                "jfif",
+                "webp"
+            ],
+            "chunk_size": 50,
             "db_host": "127.0.0.1",
             "db_user": "bmedia_admin",
             "db_password": "changeme"
         }
-    ]
+    ],
+    "db_host_name": "localhost",
+    "db_host_port": 5432,
+    "db_name": "bmediadb",
+    "update_delay_sec": 10,
+    "update_interval_sec": 600,
+    "remove_broken_paths": true
 }

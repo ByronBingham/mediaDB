@@ -11,6 +11,10 @@
         {
             "table_name": "art",
             "table_type": "image"
+        },
+        {
+            "table_name": "nsfw_images",
+            "table_type": "image"
         }
     ]
 }

@@ -5,21 +5,19 @@ var imageTagList = undefined;
 
 window.onDocLoad = function(){
     let params = (new URL(document.location)).searchParams;
-    let md5 = params.get("md5");
-    let filename = params.get("filename");
-    if(md5 && filename){
-        sendImageRequest(md5, filename);
-        sendTagsRequest(md5, filename);
+    let id = params.get("id");
+    if(id){
+        sendImageRequest(id);
+        sendTagsRequest(id);
     }
 
-    imageTagList = new ImageTagList(md5, filename);
+    imageTagList = new ImageTagList(id);
 }
 
 const handleImageResponse = function(data){
-    let md5 = data["md5"];
-    let filename = data["filename"];
+    let id = data["id"];
     let imageData = data["image_base64"];
-    imageViewer = new ImageViewer(md5, filename, imageData);
+    imageViewer = new ImageViewer(id, imageData);
 
     document.getElementById("image-viewer").appendChild(imageViewer);
 }
@@ -34,9 +32,9 @@ const handleTagsResponse = function(data){
     });    
 }
 
-const sendImageRequest = function(md5, filename){    
+const sendImageRequest = function(id){    
     // query API
-    let requestString = `http://${apiAddr}/images/get_image_full?table_name=${dbTableName}&md5=${md5}&filename=${filename}`;
+    let requestString = `http://${apiAddr}/images/get_image_full?table_name=${dbTableName}&id=${id}`;
     //console.log("Request: " + requestString);
 
     // send request
@@ -47,9 +45,9 @@ const sendImageRequest = function(md5, filename){
     
 }
 
-const sendTagsRequest = function(md5, filename){    
+const sendTagsRequest = function(id){
     // query API
-    let requestString = `http://${apiAddr}/images/get_tags?table_name=${dbTableName}&md5=${md5}&filename=${filename}`;
+    let requestString = `http://${apiAddr}/images/get_tags?table_name=${dbTableName}&id=${id}`;
     //console.log("Request: " + requestString);
 
     // send request

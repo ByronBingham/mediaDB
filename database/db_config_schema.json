@@ -4,6 +4,16 @@
     "description": "Schema for configuring a media database",
     "type": "object",
     "properties": {
+        "database_host_name":
+        {
+            "description": "Address of the database host",
+            "type": "string"
+        },
+        "database_host_port":
+        {
+            "description": "Port to use to connect to the database",
+            "type": "string"
+        },
         "database_name":
         {
             "description": "Name of the database to create",

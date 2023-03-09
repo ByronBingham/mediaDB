@@ -22,7 +22,7 @@ public class TagController {
     @RequestMapping(value = "/tags/get_all_tags", produces = "application/json")
     public ResponseEntity<String> getAllTags() {
 
-        String query = "SELECT * FROM bmedia_schema.tags ORDER BY tag_name;";
+        String query = "SELECT * FROM " + ApiSettings.getSchemaName() + ".tags ORDER BY tag_name;";
 
         String jsonOut = "[";
         try {
@@ -58,7 +58,7 @@ public class TagController {
         boolean nsfwVal = nsfw.orElse(false);
         tagName = tagName.replace("'", "''");
 
-        String query = "INSERT INTO bmedia_schema.tags (tag_name, nsfw) VALUES (?, ?) ON CONFLICT (tag_name) DO UPDATE SET nsfw = " +
+        String query = "INSERT INTO " + ApiSettings.getSchemaName() + ".tags (tag_name, nsfw) VALUES (?, ?) ON CONFLICT (tag_name) DO UPDATE SET nsfw = " +
                 "EXCLUDED.nsfw;";
 
         try {
@@ -78,7 +78,7 @@ public class TagController {
                                             @RequestParam("nsfw") Boolean nsfw) {
         tagName = tagName.replace("'", "''");
 
-        String query = "UPDATE bmedia_schema.tags SET nsfw = " + ((nsfw) ? "TRUE" : "FALSE")
+        String query = "UPDATE " + ApiSettings.getSchemaName() + ".tags SET nsfw = " + ((nsfw) ? "TRUE" : "FALSE")
                 + " WHERE tag_name = '" + tagName + "';";
 
         try {

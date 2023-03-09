@@ -40,7 +40,7 @@ CREATE TABLE bmedia_schema.art(
     resolution_width INTEGER,
     resolution_height INTEGER,
     file_size_bytes INTEGER,
-    PRIMARY KEY (md5, filename),
+    PRIMARY KEY (md5, file_path),
     UNIQUE (file_path)
 );
 CREATE INDEX art_index ON bmedia_schema.art(resolution_width, resolution_height, file_size_bytes);
@@ -51,7 +51,7 @@ CREATE TABLE bmedia_schema.music(
     song_name VARCHAR(255),
     file_path VARCHAR(255),
     user_rating FLOAT,
-    PRIMARY KEY (md5, filename),
+    PRIMARY KEY (md5, file_path),
     UNIQUE (file_path)
 );
 
@@ -66,7 +66,7 @@ CREATE TABLE bmedia_schema.videos(
     md5 VARCHAR(32),
     filename VARCHAR(255),
     file_path VARCHAR(255),
-    PRIMARY KEY (md5, filename),
+    PRIMARY KEY (md5, file_path),
     UNIQUE (file_path)
 );
 
@@ -91,7 +91,7 @@ CREATE TABLE bmedia_schema.art_tags_join(
     tag_name VARCHAR(255),
     FOREIGN KEY (md5, filename) REFERENCES bmedia_schema.art(md5, filename),
     FOREIGN KEY (tag_name) REFERENCES bmedia_schema.tags(tag_name),
-    UNIQUE (md5, filename, tag_name)
+    UNIQUE (md5, file_path, tag_name)
 );
 
 CREATE TABLE bmedia_schema.music_tags_join(
@@ -100,7 +100,7 @@ CREATE TABLE bmedia_schema.music_tags_join(
     tag_name VARCHAR(255),
     FOREIGN KEY (md5, filename) REFERENCES bmedia_schema.music(md5, filename),
     FOREIGN KEY (tag_name) REFERENCES bmedia_schema.tags(tag_name),
-    UNIQUE (md5, filename, tag_name)
+    UNIQUE (md5, file_path, tag_name)
 );
 
 CREATE TABLE bmedia_schema.music_playlists_tags_join(
@@ -117,7 +117,7 @@ CREATE TABLE bmedia_schema.videos_tags_join(
     tag_name VARCHAR(255),
     FOREIGN KEY (md5, filename) REFERENCES bmedia_schema.videos(md5, filename),
     FOREIGN KEY (tag_name) REFERENCES bmedia_schema.tags(tag_name),
-    UNIQUE (md5, filename, tag_name)
+    UNIQUE (md5, file_path, tag_name)
 );
 
 CREATE TABLE bmedia_schema.tag_category_join(

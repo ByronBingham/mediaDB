@@ -2,10 +2,9 @@ import { LitElement, html } from 'lit-element';
 
 export class ImageViewer extends LitElement {
 
-    constructor(md5, filename, imageData){
+    constructor(id, imageData){
         super();
-        this.md5 = md5;
-        this.filename = filename;
+        this.id = id;
         this.imageData = imageData;
     }
 
@@ -22,10 +21,9 @@ export class ImageViewer extends LitElement {
 }
 
 export class ImageTagConrolBar extends LitElement {
-    constructor(md5, filename, imageTagList){
+    constructor(id, imageTagList){
         super();
-        this.md5 = md5;
-        this.filename = filename;
+        this.id = id;
         this.imageTagList = imageTagList;
     }
 
@@ -60,7 +58,7 @@ export class ImageTagConrolBar extends LitElement {
     submitAddTagForm(){
         let tagName = this.shadowRoot.getElementById("tag-name-txt").value;
         let nsfw = this.shadowRoot.getElementById("nsfw-check").checked;
-        fetch(`http://${apiAddr}/images/add_tag?table_name=${dbTableName}&md5=${this.md5}&filename=${this.filename}&tag_name=${tagName}&nsfw=${nsfw}`).then((response) => {
+        fetch(`http://${apiAddr}/images/add_tag?table_name=${dbTableName}&id=${this.id}&tag_name=${tagName}&nsfw=${nsfw}`).then((response) => {
             if(response.ok){
                 this.imageTagList.addTagElement({"tag_name": tagName, "nsfw": nsfw});
             } else {
@@ -87,22 +85,21 @@ export class ImageTagConrolBar extends LitElement {
 }
 
 export class ImageTagList extends LitElement {
-    constructor(md5, filename){
+    constructor(id){
         super();
         this.tagData = [];
         this.tagElements = [];
         this.editTagElements = [];
         this.editing = false;
-        this.md5 = md5;
-        this.filename = filename;
-        this.tagControlBar = new ImageTagConrolBar(this.md5, this.filename, this);
+        this.id = id;
+        this.tagControlBar = new ImageTagConrolBar(this.id, this);
     }
 
     addTagElement(data){
         let tagName = data["tag_name"];
         let nsfw = data["nsfw"];
         let tagObj = new ImageTag(tagName, nsfw);
-        let editTagObj = new EditTagElement(tagName, nsfw, this, this.md5, this.filename);
+        let editTagObj = new EditTagElement(tagName, nsfw, this, this.id);
 
         this.tagElements.push(tagObj);
         this.tagData.push(data);
@@ -195,13 +192,12 @@ export class ImageTag extends LitElement {
 }
 
 export class EditTagElement extends LitElement {
-    constructor(tagName, nsfw, imageTagList, md5, filename){
+    constructor(tagName, nsfw, imageTagList, id){
         super();
         this.name = tagName;
         this.nsfw = nsfw;
         this.imageTagList = imageTagList;
-        this.md5 = md5;
-        this.filename = filename;
+        this.id = id;
     }
 
     getTagName(){
@@ -209,7 +205,7 @@ export class EditTagElement extends LitElement {
     }
 
     deleteTag(){
-        fetch(`http://${apiAddr}/images/delete_tag?table_name=${dbTableName}&md5=${this.md5}&filename=${this.filename}&tag_name=${this.name}`).then((response) => {
+        fetch(`http://${apiAddr}/images/delete_tag?table_name=${dbTableName}&id=${this.id}&tag_name=${this.name}`).then((response) => {
             if(response.ok){
                 this.imageTagList.removeTag(this.name);
             } else {

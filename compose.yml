@@ -1,0 +1,24 @@
+sevices:
+  database:
+    image: postgres
+    build:
+      context: .
+      dockerfile: ./docker/api/DatabaseDockerfile
+  ports: 
+        - "5432:5432"
+  api:
+    build:
+      context: .
+      dockerfile: ./docker/api/ApiDockerfile
+      ports: 
+        - "38001:38001"
+  ingester:
+    build:
+      context: .
+      dockerfile: ./docker/ingester/IngesterDockerfile
+  webui:
+    image: tomcat
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./tomcat/webapps:/usr/local/tomcat/webapps
