@@ -1,6 +1,6 @@
 {
-    "database_host_name": "localhost",
-    "database_host_port": "5432",
+    "database_host_name": "192.168.0.69",
+    "database_host_port": "5433",
     "database_name": "bmediadb",
     "database_schema": "bmedia_schema",
     "admin_username": "bmedia_admin",

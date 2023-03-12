@@ -4,15 +4,17 @@ services:
       context: .
       dockerfile: ./docker/database/DatabaseDockerfile
     ports: 
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_PASSWORD: changeme
+      #POSTGRES_DB: bmediadb
   api:
     build:
       context: .
       dockerfile: ./docker/api/ApiDockerfile
     ports: 
       - "38001:38001"
+    restart: on-failure
 # TODO: implement...seems difficult to dockerize nicely
 #  ingester:
 #    build:

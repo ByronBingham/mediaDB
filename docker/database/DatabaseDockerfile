@@ -7,9 +7,10 @@ COPY ./database/db_config.json /db_config.json
 RUN pip install jsonschema
 RUN python /build_db.py /db_config_schema.json /db_config.json
 
-FROM postgres:15.2
+FROM postgres:15.1
 COPY --from=dbScript /build_db.sql /docker-entrypoint-initdb.d/build_db.sql
-COPY ./database/dump.sql /docker-entrypoint-initdb.d/dump.sql
+COPY ./database/dump.tar /dump.tar
+COPY ./database/restoredb.sh /docker-entrypoint-initdb.d/restoredb.sh
 # TODO: This is terrible security. Change.
 #RUN service postgresql start && PGPASSWORD=changeme sudo -u postgres psql -U postgres -f /build_db.sql
 

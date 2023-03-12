@@ -17,7 +17,7 @@ public class ApiSettings {
     private static ApiSettings instance;
 
     private String dbHostName;
-    private long dbHostPort;
+    private String dbHostPort;
     private String dbName;
     private String schemaName;
     private String adminUsername;
@@ -43,7 +43,7 @@ public class ApiSettings {
             JSONObject jsonObj = (JSONObject) obj;
 
             dbHostName = (String) jsonObj.get("database_host_name");
-            dbHostPort = (long) jsonObj.get("database_host_port");
+            dbHostPort = (String) jsonObj.get("database_host_port");
             dbName = (String) jsonObj.get("database_name");
             schemaName = (String) jsonObj.get("database_schema");
             adminUsername = (String) jsonObj.get("admin_username");
@@ -86,7 +86,7 @@ public class ApiSettings {
         return instance.dbHostName;
     }
 
-    public static long getDbHostPort() {
+    public static String getDbHostPort() {
         return instance.dbHostPort;
     }
 }

@@ -15,6 +15,10 @@ Database project to store personal data on local servers. The goal of this proje
 To build DeepDanbooru...
 After building DeepDanbooru all Python dependencies, cd into `./DeepDanbooru` and run `pyhton ./setup.py install`. 
 
+## Dumping DB For Docker:
+run this:
+`pg_dump -U postgres -c -Ft -f dump.tar [name of database]`
+
 ## NOTES
  - If you are having issues with encoding on Windows (e.g. Japanese characters in files breaking the ingestion script), change your system locale to use UTF-8
  - If you get an error like "FileNotFoundError: [WinError 206] The filename or extension is too long", set the `chunk_size` property in the ingester config to a smaller
