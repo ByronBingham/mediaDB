@@ -1,21 +1,23 @@
-sevices:
+services:
   database:
-    image: postgres
     build:
       context: .
-      dockerfile: ./docker/api/DatabaseDockerfile
-  ports: 
-        - "5432:5432"
+      dockerfile: ./docker/database/DatabaseDockerfile
+    ports: 
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: changeme
   api:
     build:
       context: .
       dockerfile: ./docker/api/ApiDockerfile
-      ports: 
-        - "38001:38001"
-  ingester:
-    build:
-      context: .
-      dockerfile: ./docker/ingester/IngesterDockerfile
+    ports: 
+      - "38001:38001"
+# TODO: implement...seems difficult to dockerize nicely
+#  ingester:
+#    build:
+#      context: .
+#      dockerfile: ./docker/ingester/IngesterDockerfile
   webui:
     image: tomcat
     ports:

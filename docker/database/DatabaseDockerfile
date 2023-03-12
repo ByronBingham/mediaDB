@@ -1,0 +1,15 @@
+# syntax=docker/dockerfile:1
+
+FROM python:3.11.2 AS dbScript
+COPY ./database/build_db.py /build_db.py
+COPY ./database/db_config_schema.json /db_config_schema.json
+COPY ./database/db_config.json /db_config.json
+RUN python /build_db.py /db_config_schema.json /db_config.json
+
+FROM postgres:15.2
+COPY --from=dbScript /build_db.sql /build_db.sql
+# TODO: This is terrible security. Change.
+RUN PGPASSWORD=changeme psql -U postgres -f /build_db.sql
+
+COPY ./database/dump.sql /dump.sql
+RUN pg_restore /dump.sql --clean; exit 0

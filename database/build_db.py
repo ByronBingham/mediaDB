@@ -70,9 +70,9 @@ UNIQUE (id, tag_name));\n\n"
     out += "GRANT SELECT ON ALL TABLES IN SCHEMA " + config_data["database_schema"] + " TO " + config_data["admin_username"] + ";\n"
     out += "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA " + config_data["database_schema"] + " TO " + config_data["admin_username"] + ";"
 
-    outFile = open("build_" + config_data["database_name"] + ".sql", "w")
+    outFile = open("build_db.sql", "w")
     outFile.write(out)
-    print("Create SQL script \"" + "build_" + config_data["database_name"] + ".sql\"")
+    print("Create SQL script \"build_db.sql.sql\"")
 
 
 if __name__ == "__main__":
