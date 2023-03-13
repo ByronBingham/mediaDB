@@ -19,6 +19,7 @@ public class ApiSettings {
     private String dbHostName;
     private String dbHostPort;
     private String dbName;
+    private String fileShareBaseDir;
     private String schemaName;
     private String adminUsername;
     private String adminPassword;
@@ -50,9 +51,17 @@ public class ApiSettings {
             adminPassword = (String) jsonObj.get("admin_password");
             queryUsername = (String) jsonObj.get("query_username");
             queryPassword = (String) jsonObj.get("query_password");
-
         } catch (ParseException e) {
             System.out.println("ERROR: Problem encountered parsing db config:\n" + e.getMessage());
+            return;
+        }
+        fileShareBaseDir = System.getenv("MEDIA_SHARE");
+        if (fileShareBaseDir == null) {
+            System.out.println("ERROR: Did not find environment variable \"MEDIA_SHARE\". Please make sure it is defined");
+            return;
+        }
+        if (!FileUtils.isDirectory(new File(fileShareBaseDir))) {
+            System.out.println("ERROR: Environment variable \"MEDIA_SHARE\" is not a directory.");
             return;
         }
     }
@@ -88,5 +97,13 @@ public class ApiSettings {
 
     public static String getDbHostPort() {
         return instance.dbHostPort;
+    }
+
+    public static String getFileShareBaseDir() {
+        return instance.fileShareBaseDir;
+    }
+
+    public static String getFullFilePath(String subPath) {
+        return instance.fileShareBaseDir + "/" + subPath;
     }
 }

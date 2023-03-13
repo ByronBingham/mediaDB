@@ -224,7 +224,7 @@ public class ImageController {
             }
 
             String filePath = result.getString("file_path");
-            b64Thumb = getThumbnailForImage(filePath, thumbHeightVal);
+            b64Thumb = getThumbnailForImage(ApiSettings.getFullFilePath(filePath), thumbHeightVal);
             if (b64Thumb == null) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error: no results returned from query");
             }
@@ -258,7 +258,7 @@ public class ImageController {
             }
 
             String filePath = result.getString("file_path");
-            b64Image = getFullImage_b64(filePath);
+            b64Image = getFullImage_b64(ApiSettings.getFullFilePath(filePath));
             if (b64Image == null) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error: no results returned from query");
             }

@@ -9,11 +9,7 @@ RUN python /build_db.py /db_config_schema.json /db_config.json
 
 FROM postgres:15.1
 COPY --from=dbScript /build_db.sql /docker-entrypoint-initdb.d/build_db.sql
-COPY ./database/dump.tar /dump.tar
-COPY ./database/restoredb.sh /docker-entrypoint-initdb.d/restoredb.sh
-# TODO: This is terrible security. Change.
-#RUN service postgresql start && PGPASSWORD=changeme sudo -u postgres psql -U postgres -f /build_db.sql
 
-
-
-#RUN pg_restore /dump.sql --clean; exit 0
+# Comment out the next two lines if you don't have a dump file
+#COPY ./database/dump.tar /dump.tar
+#COPY ./database/restoredb.sh /docker-entrypoint-initdb.d/restoredb.sh

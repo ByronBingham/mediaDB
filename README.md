@@ -19,6 +19,10 @@ After building DeepDanbooru all Python dependencies, cd into `./DeepDanbooru` an
 run this:
 `pg_dump -U postgres -c -Ft -f dump.tar [name of database]`
 
+## MEDIA_SHARE
+This environment variable should point to a share that contains all the media for the entire database. The path of all files must start in this folder. This was done to make pathing easier in Docker containers.
+In a container, this will point to one dir, but you could mount multiple volumes (from different host dirs/drives) into this folder if you want to add dirs for different dirs/shares/etc.
+
 ## NOTES
  - If you are having issues with encoding on Windows (e.g. Japanese characters in files breaking the ingestion script), change your system locale to use UTF-8
  - If you get an error like "FileNotFoundError: [WinError 206] The filename or extension is too long", set the `chunk_size` property in the ingester config to a smaller

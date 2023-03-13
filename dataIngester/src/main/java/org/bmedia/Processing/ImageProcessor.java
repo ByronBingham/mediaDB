@@ -1,6 +1,7 @@
 package org.bmedia.Processing;
 
 import org.apache.commons.io.FilenameUtils;
+import org.bmedia.IngesterConfig;
 import org.bmedia.Main;
 import org.bmedia.Utils;
 import org.bmedia.tagger.ImageTagger;
@@ -180,7 +181,8 @@ public class ImageProcessor extends MediaProcessor<String> {
                 height = bimg.getHeight();
             }
 
-            valueArr.add("('" + md5 + "', '" + filename + "', '" + fullPath + "', '" + width + "', '" + height + "', '" + fileSizeBytes + "')");
+            valueArr.add("('" + md5 + "', '" + filename + "', '" + Utils.toLinuxPath(IngesterConfig.getPathRelativeToShare(fullPath))
+                    + "', '" + width + "', '" + height + "', '" + fileSizeBytes + "')");
         }
         pathStrings = newPathStrings;
 

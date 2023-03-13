@@ -1,0 +1,40 @@
+services:
+  database:
+    build:
+      context: .
+      dockerfile: ./docker/database/DatabaseDockerfile
+    ports: 
+      - "5433:5432"
+    environment:
+      POSTGRES_PASSWORD: changeme
+    volumes:
+      - [host data dir]:/var/lib/postgresql/data
+  api:
+    depends_on:
+      database:
+        condition: service_started
+    build:
+      context: .
+      dockerfile: ./docker/api/ApiDockerfile
+    ports: 
+      - "38001:38001"
+    restart: unless-stopped
+    environment:
+      MEDIA_SHARE: /share
+    volumes:
+      - cifs_mount:/share
+  webui:
+    image: tomcat
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./tomcat/webapps:/usr/local/tomcat/webapps
+
+volumes:
+  cifs_mount:
+    driver: local
+    driver_opts:
+      type: cifs
+      device: "//[file share address]/[share dir]"
+      o: username=byron,password=Xtp9384Rgeq,iocharset=utf8
+      

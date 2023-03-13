@@ -33,7 +33,6 @@ public class Main {
     private static AtomicBoolean running = new AtomicBoolean(true);
 
     private static Connection dbconn = null;
-    private static IngesterConfig config = null;
 
     private static AtomicBoolean checkingFs = new AtomicBoolean(false);
 
@@ -44,7 +43,7 @@ public class Main {
             return;
         }
         try {
-            config = new IngesterConfig(args[0]);
+            IngesterConfig.init(args[0]);
         }catch (IOException | org.json.simple.parser.ParseException e){
             System.out.println("ERROR: Could not read/parse the provided config file: ");
             e.printStackTrace();
@@ -52,10 +51,10 @@ public class Main {
         }
 
         try {
-            String tmp = "jdbc:postgresql://" + config.getDbHostname() + ":" + config.getDbHostPort() +
-                    "/" + config.getDbName();
-            dbconn = DriverManager.getConnection("jdbc:postgresql://" + config.getDbHostname() + ":" + config.getDbHostPort() +
-                    "/" + config.getDbName(), "bmedia_admin", "changeme");
+            String tmp = "jdbc:postgresql://" + IngesterConfig.getDbHostname() + ":" + IngesterConfig.getDbHostPort() +
+                    "/" + IngesterConfig.getDbName();
+            dbconn = DriverManager.getConnection("jdbc:postgresql://" + IngesterConfig.getDbHostname() + ":" + IngesterConfig.getDbHostPort() +
+                    "/" + IngesterConfig.getDbName(), "bmedia_admin", "changeme");
         } catch (SQLException e) {
             System.out.println("ERROR: Unable to establish connection to database. Exiting...");
             return;
@@ -63,7 +62,7 @@ public class Main {
 
         processingGroups = ProcessingGroup.createGroupsFromFile(args[0]);
         timedUpdate = new TimedUpdate();
-        timer.schedule(timedUpdate, config.getTimedUpdateDelaySec() * 1000, config.getTimedUpdateIntervalSec() * 1000);
+        timer.schedule(timedUpdate, IngesterConfig.getTimedUpdateDelaySec() * 1000, IngesterConfig.getTimedUpdateIntervalSec() * 1000);
 
     }
 
@@ -99,7 +98,7 @@ public class Main {
             // Make sure format of strings is same as file system paths
             HashSet<String> dbPaths = new HashSet<>();
             for (String dbPathString : dbPathStrings) {
-                dbPaths.add((new File(dbPathString)).getAbsolutePath());
+                dbPaths.add((new File(IngesterConfig.getFullFilePath(dbPathString))).getAbsolutePath());
             }
 
             // Get all filesystem paths
@@ -130,7 +129,7 @@ public class Main {
                 }
 
                 for (String dbPath : dbPaths) {
-                    if (!fsPaths.contains(dbPath) && config.removeBrokenPaths()) {
+                    if (!fsPaths.contains(dbPath) && IngesterConfig.removeBrokenPaths()) {
                         // a path in the database no longer exists in the file system
                         group.deleteFile(dbPath);
                     }

@@ -41,4 +41,8 @@ public class Utils {
         }
     }
 
+    public static String toLinuxPath(String path){
+        return path.replace("\\", "/");
+    }
+
 }

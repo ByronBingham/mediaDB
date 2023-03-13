@@ -10,6 +10,7 @@ WORKDIR /bmedia_api
 RUN mvn package
 
 FROM adoptopenjdk/openjdk11
+RUN mkdir /share
 COPY --from=jar /bmedia_api/target/bmedia_api-1.0-SNAPSHOT-jar-with-dependencies.jar /bmedia_api.jar
 COPY ./database/db_config.json /db_config.json
 CMD ["java", "-jar", "/bmedia_api.jar", "/db_config.json", "--server.port=38001"]
