@@ -1,0 +1,105 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Database Config Schema",
+    "description": "Schema for configuring a media database",
+    "type": "object",
+    "properties": {
+        "ingest_groups": {
+            "type": "array",
+            "description": "Groups for processing. Each group can have different source directories and DB tables",
+            "items": {
+                "type": "object",
+                "description": "Properties for each processing group",
+                "properties": {
+                    "name":{
+                        "type": "string",
+                        "description": "Name of the group"
+                    },
+                    "source_dirs":{
+                        "type": "array",
+                        "description": "List of directories to search for images",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "target_schema":{
+                        "type": "string",
+                        "description": "Database schema to use. Should match the schema specified in `database/db_config.json`"
+                    },
+                    "target_table":{
+                        "type": "string",
+                        "description": "Name of the table to use. Should match a table in `database/db_config.json`"
+                    },
+                    "auto_tag":{
+                        "type": "boolean",
+                        "description": "Whether or not to automatically add tags to images"
+                    },
+                    "tag_prob_thres":{
+                        "type": "number",
+                        "description": "Float inbetween 0.0 and 1.0. When auto-tagging, ignore any tag with a probability lower than this number"
+                    },
+                    "jfif_webm_to_jpg":{
+                        "type": "boolean",
+                        "description": "If true, saves .jfif and .webm files as jpg files"
+                    },
+                    "media_type":{
+                        "type": "string",
+                        "description": "Type of media to injest (currently only `image` is supported)",
+                        "enum": ["image"]
+                    },
+                    "valid_extensions":{
+                        "type": "array",
+                        "description": "List of extensions that should be added to the database",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "chunk_size":{
+                        "type": "number",
+                        "description": "Number of files to process at once"
+                    }
+                }
+            }
+        },
+        "db_host_name": {
+            "type": "string",
+            "description": "Address of the database"
+        },
+        "db_host_port": {
+            "type": "number",
+            "description": "Port of the database"
+        },
+        "db_name": {
+            "type": "string",
+            "description": "Address of the database"
+        },
+        "db_user": {
+            "type": "string",
+            "description": "Name of user to access the database with"
+        },
+        "db_password": {
+            "type": "string",
+            "description": "Password for the database user"
+        },
+        "update_delay_sec": {
+            "type": "number",
+            "description": "Number of seconds before the ingester checks the filesystem for existing files that aren't in the database"
+        },
+        "update_interval_sec": {
+            "type": "number",
+            "description": "Interval (seconds) between when the ingester checks the filesystem for existing files that aren't in the database"
+        },
+        "remove_broken_paths": {
+            "type": "boolean",
+            "description": "If true, removes paths from the database if they don't exist on the filesystem anymore"
+        },
+        "python_exe": {
+            "type": "string",
+            "description": "Path to the python interpereter to use. The executable specified must have DD installed for auto-tagging to work"
+        },
+        "dd_project_dir": {
+            "type": "string",
+            "description": "Path pointing to the DD directory (see readme for more info)"
+        }
+    }
+}

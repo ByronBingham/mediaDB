@@ -1,0 +1,1 @@
+java -jar dataIngester.jar "./ingesterConfig.json"

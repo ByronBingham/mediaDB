@@ -54,7 +54,7 @@ public class Main {
             String tmp = "jdbc:postgresql://" + IngesterConfig.getDbHostname() + ":" + IngesterConfig.getDbHostPort() +
                     "/" + IngesterConfig.getDbName();
             dbconn = DriverManager.getConnection("jdbc:postgresql://" + IngesterConfig.getDbHostname() + ":" + IngesterConfig.getDbHostPort() +
-                    "/" + IngesterConfig.getDbName(), "bmedia_admin", "changeme");
+                    "/" + IngesterConfig.getDbName(), IngesterConfig.getDbUser(), IngesterConfig.getDbPassword());
         } catch (SQLException e) {
             System.out.println("ERROR: Unable to establish connection to database. Exiting...");
             return;

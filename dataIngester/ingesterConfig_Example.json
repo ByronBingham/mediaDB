@@ -1,0 +1,31 @@
+{
+    "ingest_groups": [
+        {
+            "name": "[group name]",
+            "source_dirs": [
+                "[path to images]"
+            ],
+            "target_schema": "[db schema]",
+            "target_table": "[table name]",
+            "auto_tag": true,
+            "tag_prob_thres": 0.6,
+            "jfif_webm_to_jpg": true,
+            "media_type": "image",
+            "valid_extensions":[
+                "png",
+                "jpeg",
+                "jpg",
+                "jfif",
+                "webp"
+            ],
+            "chunk_size": 50
+        }
+    ],
+    "db_host": "[db host address]",
+    "db_host_port": 5432,
+    "db_user": "[db admin user]",
+    "db_password": "[password]",
+    "update_delay_sec": 10,
+    "update_interval_sec": 600,
+    "remove_broken_paths": true
+}

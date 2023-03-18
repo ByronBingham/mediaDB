@@ -18,10 +18,14 @@ public class IngesterConfig {
     private final String dbHostname;
     private final long dbHostPort;
     private final String dbName;
+    private final String dbUser;
+    private final String dbPassword;
     private final String fileShareBaseDir;
     private final long timedUpdateDelaySec;
     private final long timedUpdateIntervalSec;
     private final boolean removeBrokenPaths;
+    private final String pythonExePath;
+    private final String ddProjectPath;
 
     public static void init(String configPath) throws IOException, ParseException {
         instance = new IngesterConfig(configPath);
@@ -38,10 +42,14 @@ public class IngesterConfig {
         dbHostname = (String) jsonObj.get("db_host_name");
         dbHostPort = (long) jsonObj.get("db_host_port");
         dbName = (String) jsonObj.get("db_name");
+        dbUser = (String) jsonObj.get("db_user");
+        dbPassword = (String) jsonObj.get("db_password");
         timedUpdateDelaySec = (long) jsonObj.get("update_delay_sec");
         timedUpdateIntervalSec = (long) jsonObj.get("update_interval_sec");
         removeBrokenPaths = (boolean) jsonObj.get("remove_broken_paths");
-        fileShareBaseDir = (String) jsonObj.get("share_prefix");
+        fileShareBaseDir = System.getenv("MEDIA_SHARE");
+        pythonExePath = (String) jsonObj.get("python_exe");
+        ddProjectPath = (String) jsonObj.get("dd_project_dir");
     }
 
     public static String getDbHostname() {
@@ -70,6 +78,22 @@ public class IngesterConfig {
 
     public static String getFullFilePath(String subPath) {
         return instance.fileShareBaseDir + "/" + subPath;
+    }
+
+    public static String getPythonExePath() {
+        return instance.pythonExePath;
+    }
+
+    public static String getDbPassword() {
+        return instance.dbPassword;
+    }
+
+    public static String getDbUser() {
+        return instance.dbUser;
+    }
+
+    public static String getDdProjectPath() {
+        return instance.ddProjectPath;
     }
 
     public static String getPathRelativeToShare(String fullPath) {

@@ -24,7 +24,7 @@ public class ProcessingGroup {
     private final String targetTableSchema;
     private final String targetTableName;
     private final String fullTableName;
-    private final boolean auto_tag;
+    private final boolean autoTag;
     private final boolean jfifWebmToJpg;
     private final MEDIA_TYPE mediaType;
     private final ArrayList<String> valid_extensions;
@@ -35,13 +35,13 @@ public class ProcessingGroup {
 
     private final GroupListener groupListener;
 
-    public ProcessingGroup(String name, ArrayList<String> sourceDirs, String targetDbSchema, String targetDbName, boolean auto_tag,
+    public ProcessingGroup(String name, ArrayList<String> sourceDirs, String targetDbSchema, String targetDbName, boolean autoTag,
                            boolean jfifWebmToJpg, ArrayList<String> valid_extensions, MEDIA_TYPE mediaType, double tagProbabilityThreshold, long chunkSize) throws IOException {
         this.name = name;
         this.sourceDirs = sourceDirs;
         this.targetTableSchema = targetDbSchema;
         this.targetTableName = targetDbName;
-        this.auto_tag = auto_tag;
+        this.autoTag = autoTag;
         this.jfifWebmToJpg = jfifWebmToJpg;
         this.mediaType = mediaType;
         this.valid_extensions = valid_extensions;
@@ -88,7 +88,7 @@ public class ProcessingGroup {
                 String groupName = (String) groupObj.get("name");
                 ArrayList<String> sourceDirs = new ArrayList(Arrays.asList(((JSONArray) groupObj.get("source_dirs")).toArray()));
                 String dbSchema = (String) groupObj.get("target_schema");
-                String dbName = (String) groupObj.get("target_db");
+                String dbName = (String) groupObj.get("target_table");
                 String fullDbName = dbSchema + ((!dbSchema.equals("")) ? "." : "") + dbName;
                 if (!Utils.checkForDb(fullDbName)) {
                     System.out.println("ERROR: The database \"" + fullDbName + "\" does not exist.");
@@ -145,7 +145,7 @@ public class ProcessingGroup {
     }
 
     public boolean isAuto_tag() {
-        return auto_tag;
+        return autoTag;
     }
 
     public boolean isJfifWebmToJpg() {

@@ -1,0 +1,15 @@
+{
+    "database_host_name": "[db host ip/address]",
+    "database_host_port": "[db host port]",
+    "database_name": "[database name]",
+    "database_schema": "[db schema name]",
+    "admin_username": "[db admin username]",
+    "admin_password": "[admin password]",
+    "query_username": "[basic username]",
+    "query_password": "[basic user password]",
+    "tables": [
+        {
+            "table_name": "[table_name]",
+            "table_type": "[table type (only 'image' is currently implemented)]"
+        }
+}

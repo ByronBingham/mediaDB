@@ -1,5 +1,7 @@
 package org.bmedia.tagger;
 
+import org.bmedia.IngesterConfig;
+
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,7 +12,7 @@ public class ImageTagger {
         ArrayList<String> fullCommand = new ArrayList<>();
         String out = "";
 
-        String ddcmd = "../venv/Scripts/python.exe -m deepdanbooru evaluate --project-path \"../DeepDanbooru\" --allow-gpu";
+        String ddcmd = IngesterConfig.getPythonExePath() + " -m deepdanbooru evaluate --project-path \"" + IngesterConfig.getDdProjectPath() + "\" --allow-gpu";
         for(String path: imagePaths){
             if(path.contains("\"")){
                 System.out.println("ERROR: Illegal character '\"' found in path");
