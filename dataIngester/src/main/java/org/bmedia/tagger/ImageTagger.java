@@ -16,7 +16,7 @@ public class ImageTagger {
                 System.out.println("ERROR: Illegal character '\"' found in path");
                 continue;
             }
-            ddcmd += " '" + path.replace("'", "''") + "' ";
+            ddcmd += " \"" + path.replace("`", "``") + "\" ";
         }
 
         if(System.getProperty("os.name").toLowerCase().contains("windows")){

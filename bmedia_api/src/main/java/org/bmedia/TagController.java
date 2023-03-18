@@ -42,6 +42,7 @@ public class TagController {
             jsonOut += String.join(",", jsonEntries);
             jsonOut += "]";
         } catch (SQLException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
         }
 
@@ -67,6 +68,7 @@ public class TagController {
             statement.setBoolean(2, nsfwVal);
             statement.executeUpdate();
         } catch (SQLException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
         }
 
@@ -85,6 +87,7 @@ public class TagController {
             Statement statement = Main.getDbconn().createStatement();
             statement.executeUpdate(query);
         } catch (SQLException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
         }
 

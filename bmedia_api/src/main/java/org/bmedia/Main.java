@@ -40,7 +40,18 @@ public class Main {
         return ResponseEntity.status(HttpStatus.OK).body("This is the BMedia API");
     }
 
-    public static Connection getDbconn(){
+public synchronized static Connection getDbconn() throws SQLException{
+        try{
+            Statement statement = dbconn.createStatement();
+            ResultSet result = statement.executeQuery("SELECT 1;");
+        } catch (SQLException e){
+            dbconn = DriverManager.getConnection("jdbc:postgresql://" + ApiSettings.getDbHostName() + ":" +
+                            ApiSettings.getDbHostPort() + "/" + ApiSettings.getDbName(),
+                    ApiSettings.getAdminUsername(), ApiSettings.getAdminPassword());
+            System.out.println("INFO: Error encountered while checking DB connection:\n" + e.getMessage());
+            System.out.println("INFO: Connection with database was closed. Re-connecting to database");
+        }
+
         return dbconn;
     }
 }

@@ -123,6 +123,7 @@ public class ImageController {
             jsonOut += String.join(",", jsonEntries);
             jsonOut += "]";
         } catch (SQLException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
         }
 
@@ -198,6 +199,7 @@ public class ImageController {
                 jsonOut += "}";
             }
         } catch (SQLException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
         }
 
@@ -230,6 +232,7 @@ public class ImageController {
             }
 
         } catch (SQLException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
         }
 
@@ -264,6 +267,7 @@ public class ImageController {
             }
 
         } catch (SQLException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
         }
 
@@ -303,6 +307,7 @@ public class ImageController {
             jsonOut += String.join(",", jsonEntries);
             jsonOut += "]";
         } catch (SQLException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
         }
 
@@ -350,6 +355,7 @@ public class ImageController {
             statement2.executeUpdate();
 
         } catch (SQLException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
         }
 
@@ -376,6 +382,7 @@ public class ImageController {
             Statement statement = Main.getDbconn().createStatement();
             statement.executeUpdate(query);
         } catch (SQLException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
         }
 

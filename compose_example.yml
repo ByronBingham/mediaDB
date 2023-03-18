@@ -36,5 +36,5 @@ volumes:
     driver_opts:
       type: cifs
       device: "//[file share address]/[share dir]"
-      o: username=byron,password=Xtp9384Rgeq,iocharset=utf8
+      o: username=[username],password=[password],iocharset=utf8
       
