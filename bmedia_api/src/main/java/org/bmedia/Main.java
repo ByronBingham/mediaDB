@@ -24,10 +24,12 @@ public class Main {
         ApiSettings.init(args[0]);
 
         try {
-            dbconn = DriverManager.getConnection("jdbc:postgresql://" + ApiSettings.getDbHostName() + ":" +
-                            ApiSettings.getDbHostPort() + "/" + ApiSettings.getDbName(),
-                    ApiSettings.getAdminUsername(), ApiSettings.getAdminPassword());
+            String url = "jdbc:postgresql://" + ApiSettings.getDbHostName() + ":" +
+                    ApiSettings.getDbHostPort() + "/" + ApiSettings.getDbName();
+            System.out.println("INFO: Connnecting to DB: \n" + url);
+            dbconn = DriverManager.getConnection(url, ApiSettings.getAdminUsername(), ApiSettings.getAdminPassword());
         } catch (SQLException e) {
+            e.printStackTrace();
             System.out.println("ERROR: Unable to establish connection to database. Exiting...");
             return;
         }
@@ -40,11 +42,11 @@ public class Main {
         return ResponseEntity.status(HttpStatus.OK).body("This is the BMedia API");
     }
 
-public synchronized static Connection getDbconn() throws SQLException{
-        try{
+    public synchronized static Connection getDbconn() throws SQLException {
+        try {
             Statement statement = dbconn.createStatement();
             ResultSet result = statement.executeQuery("SELECT 1;");
-        } catch (SQLException e){
+        } catch (SQLException e) {
             dbconn = DriverManager.getConnection("jdbc:postgresql://" + ApiSettings.getDbHostName() + ":" +
                             ApiSettings.getDbHostPort() + "/" + ApiSettings.getDbName(),
                     ApiSettings.getAdminUsername(), ApiSettings.getAdminPassword());
