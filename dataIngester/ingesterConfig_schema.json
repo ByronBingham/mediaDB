@@ -100,6 +100,10 @@
         "dd_project_dir": {
             "type": "string",
             "description": "Path pointing to the DD directory (see readme for more info)"
+        },
+        "share_base_dir": {
+            "type": "string",
+            "description": "Path pointing to the base share directory (all source directories should be contained in this directory)"
         }
     }
 }

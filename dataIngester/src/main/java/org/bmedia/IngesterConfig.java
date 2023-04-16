@@ -47,9 +47,9 @@ public class IngesterConfig {
         timedUpdateDelaySec = (long) jsonObj.get("update_delay_sec");
         timedUpdateIntervalSec = (long) jsonObj.get("update_interval_sec");
         removeBrokenPaths = (boolean) jsonObj.get("remove_broken_paths");
-        fileShareBaseDir = System.getenv("MEDIA_SHARE");
         pythonExePath = (String) jsonObj.get("python_exe");
         ddProjectPath = (String) jsonObj.get("dd_project_dir");
+        fileShareBaseDir = (String) jsonObj.get("share_base_dir");
     }
 
     public static String getDbHostname() {
@@ -77,7 +77,11 @@ public class IngesterConfig {
     }
 
     public static String getFullFilePath(String subPath) {
-        return instance.fileShareBaseDir + "/" + subPath;
+        if(instance.fileShareBaseDir.endsWith("/") || instance.fileShareBaseDir.endsWith("\\")){
+            return instance.fileShareBaseDir + subPath;
+        } else {
+            return instance.fileShareBaseDir + "/" + subPath;
+        }
     }
 
     public static String getPythonExePath() {

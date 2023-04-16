@@ -120,23 +120,20 @@ public class Main {
             }
 
             // Compare paths to filesystem
-            if (fsPaths.size() > 0) {
-                for (String fsPath : fsPaths) {
-                    if (!dbPaths.contains(fsPath)) {
-                        // a file in the filesystem has not been added to the database yet
-                        group.addFile(fsPath);
-                    }
-                }
-
-                for (String dbPath : dbPaths) {
-                    if (!fsPaths.contains(dbPath) && IngesterConfig.removeBrokenPaths()) {
-                        // a path in the database no longer exists in the file system
-                        group.deleteFile(dbPath);
-                    }
-                }
-
-            } else {
+            if (fsPaths.size() < 1) {
                 System.out.println("WARNING: No files found in the file system supplied in the config");
+            }
+            for (String fsPath : fsPaths) {
+                if (!dbPaths.contains(fsPath)) {
+                    // a file in the filesystem has not been added to the database yet
+                    group.addFile(fsPath);
+                }
+            }
+
+            for (String dbPath : dbPaths) {
+                if(!(new File(dbPath)).exists()){
+                    group.deleteFile(dbPath);
+                }
             }
         }
 
