@@ -231,30 +231,40 @@ public class ProcessingGroup {
 
         long[] whs = Utils.getWHS(filePath);
 
+        String fullDbPath = IngesterConfig.getFullFilePath(dbPath);
         // if width and height are the same, the images might be the same
         if(whs[0] == imageW && whs[1] == imageH){
             // check if db image was deleted
-            if(dbPath == null || !(new File(dbPath).exists())){
+            if(dbPath == null || !(new File(fullDbPath).exists())){
                 // if the image was deleted, we can't verify if the images would have been the same, but if the filesize
                 // is the same we can probably assume they were the same image
                 if(whs[2] == imageSizeBytes){
                     return imageId;
+                } else {
+                    return -1;
                 }
-                return -1;
             }
 
             // check if images are really the same
             double diff = Utils.getImageDiff(filePath, IngesterConfig.getFullFilePath(dbPath));
             // if the images are the same
             if(diff < 0.0000001){
+                if(IngesterConfig.getDeleteDuplicates()){
+                    try {
+                        System.out.println("INFO: Deleting duplicate: \"" + fullDbPath + "\"");
+                        Files.delete(Path.of(fullDbPath));
+                    } catch (IOException e){
+                        System.out.println("WARNING: Could not delete duplicate \"" + fullDbPath + "\"");
+                    }
+                }
+                return imageId;
+            } else {
                 return -1;
             }
 
         } else {
             return -1;
         }
-
-        return imageId;
     }
 
     private void updateImagePath(long imageID, String shortPath){

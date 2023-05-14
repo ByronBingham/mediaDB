@@ -104,6 +104,10 @@
         "share_base_dir": {
             "type": "string",
             "description": "Path pointing to the base share directory (all source directories should be contained in this directory)"
+        },
+        "delete_duplicates": {
+            "type": "string",
+            "description": "If true, duplicate images will be deleted from the filesystem"
         }
     }
 }
