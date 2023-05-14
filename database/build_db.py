@@ -51,7 +51,7 @@ resolution_height INTEGER,\
 file_size_bytes INTEGER,\
 date_added TIMESTAMP NOT NULL DEFAULT NOW(),\
 PRIMARY KEY (id));\n"
-            out += "CREATE INDEX " + table_spec["table_name"] + "_index ON " + config_data["database_schema"] + "." + table_spec["table_name"] + "(resolution_width, resolution_height, file_size_bytes);\n"
+            out += "CREATE INDEX " + table_spec["table_name"] + "_index ON " + config_data["database_schema"] + "." + table_spec["table_name"] + "(resolution_width, resolution_height, file_size_bytes, md5);\n"
 
             out += "CREATE TABLE " + config_data["database_schema"] + "." + table_spec["table_name"] + "_tags_join(\
 id BIGINT,\

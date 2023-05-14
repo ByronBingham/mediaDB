@@ -69,7 +69,7 @@ public class ImageController {
             }
             query = "SELECT a.id,a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
                     " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.id) = (at.id) " +
-                    nsfwJoinString +
+                    nsfwJoinString + " WHERE NOT a.file_path='' " +
                     "GROUP BY (a.id)" + nsfwString2 + " ORDER BY a.id DESC" +
                     " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage + ";";
         } else {
@@ -81,7 +81,7 @@ public class ImageController {
             query = "SELECT a.id,a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
                     " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.id) = (at.id) " +
                     nsfwJoinString +
-                    "WHERE at.tag_name IN (" + tag_string + ") " + nsfwString1 +
+                    "WHERE NOT a.file_path='' AND at.tag_name IN (" + tag_string + ") " + nsfwString1 +
                     "GROUP BY (a.id) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2 + " ORDER BY a.id DESC" +
                     " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage + ";";
         }
@@ -166,7 +166,7 @@ public class ImageController {
                     "(SELECT a.id" +
                     " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.id) = (at.id) " +
                     nsfwJoinString +
-                    "GROUP BY (a.id)" + nsfwString2 +
+                    "WHERE NOT a.file_path='' GROUP BY (a.id)" + nsfwString2 +
                     ") AS g;";
         } else {
             // for reference: https://elliotchance.medium.com/handling-tags-in-a-sql-database-5597b9894049
@@ -178,7 +178,7 @@ public class ImageController {
                     "(SELECT a.id" +
                     " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.id) = (at.id) " +
                     nsfwJoinString +
-                    "WHERE at.tag_name IN (" + tag_string + ") " + nsfwString1 +
+                    "WHERE NOT a.file_path='' AND at.tag_name IN (" + tag_string + ") " + nsfwString1 +
                     "GROUP BY (a.id) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2 +
                     ") AS g;";
         }
@@ -226,6 +226,9 @@ public class ImageController {
             }
 
             String filePath = result.getString("file_path");
+            if(filePath == null){
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("IOError: this file is probably deleted from the filesystem");
+            }
             b64Thumb = getThumbnailForImage(ApiSettings.getFullFilePath(filePath), thumbHeightVal);
             if (b64Thumb == null) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error: no results returned from query");
@@ -261,6 +264,9 @@ public class ImageController {
             }
 
             String filePath = result.getString("file_path");
+            if(filePath == null){
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("IOError: this file is probably deleted from the filesystem");
+            }
             b64Image = getFullImage_b64(ApiSettings.getFullFilePath(filePath));
             if (b64Image == null) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error: no results returned from query");

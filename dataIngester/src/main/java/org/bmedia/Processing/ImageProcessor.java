@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -165,20 +166,19 @@ public class ImageProcessor extends MediaProcessor<String> {
             String filename = FilenameUtils.getName(pathString).replace("'", "''");
             String fullPath = Path.of(pathString).toAbsolutePath().toString().replace("'", "''");
             long fileSizeBytes = 0;
-            int width = 0;
-            int height = 0;
-            BufferedImage bimg = null;
-            try {
-                fileSizeBytes = Files.size(Path.of(pathString));
-                bimg = ImageIO.read(new File(pathString));
-            } catch (IOException e) {
-                System.out.println("ERROR: error getting size of \"" + pathString + "\". Attempting to convert to a different format");
-                Utils.imageToJpg(pathString);
+            long width = 0;
+            long height = 0;
+            long[] whs = Utils.getWHS(pathString);
+            if(whs == null){
                 continue;
-            }
-            if(bimg != null) {
-                width = bimg.getWidth();
-                height = bimg.getHeight();
+            } else {
+                if(whs.length != 3){
+                    System.out.println("ERROR: Error getting width/height/size of image " + pathString);
+                    return;
+                }
+                width = whs[0];
+                height = whs[1];
+                fileSizeBytes = whs[2];
             }
 
             valueArr.add("('" + md5 + "', '" + filename + "', '" + Utils.toLinuxPath(IngesterConfig.getPathRelativeToShare(fullPath))
@@ -208,7 +208,6 @@ public class ImageProcessor extends MediaProcessor<String> {
             imagesWithTags.add(new ImageWithTags(path, new ArrayList<>(Arrays.asList(new String[]{"placeholder"}))));
         }
         addTagsToImageInDb(imagesWithTags);
-
 
         if (group.isAuto_tag()) {
             addTagsToImageInDb(imagesWithAutoTags);
@@ -298,17 +297,29 @@ public class ImageProcessor extends MediaProcessor<String> {
             System.out.println("INFO: No paths provided to delete");
             return;
         }
-        String baseQuery = "DELETE FROM " + group.getFullTableName() + " WHERE file_path=";
+        String baseQuery = "UPDATE " + group.getFullTableName() + " SET file_path=NULL WHERE file_path=?;";
 
-        try (Statement statement = Main.getDbconn().createStatement()) {
+        try{
+            PreparedStatement statement = Main.getDbconn().prepareStatement(baseQuery);
             for (String pathString : pathStrings) {
                 if (group.isJfifWebmToJpg() &&
                         (FilenameUtils.getExtension(pathString).equals("jfif") ||
                                 FilenameUtils.getExtension(pathString).equals("webp"))) {
                     continue;
                 }
-                String query = baseQuery + "'" + pathString + "'";
-                statement.executeUpdate(query);
+                String relPath = IngesterConfig.getPathRelativeToShare(pathString);
+                if(relPath == null){
+                    System.out.println("WARNING: Could not get share-relative path for \"" + pathString + "\"");
+                    continue;
+                }
+                String path = Utils.toLinuxPath(relPath);
+
+                if(path==null){
+                    System.out.println("WARNING: Could not get Linux path for \"" + IngesterConfig.getPathRelativeToShare(pathString) + "\"");
+                    continue;
+                }
+                statement.setString(1, path);
+                statement.executeUpdate();
             }
         } catch (SQLException e) {
             System.out.println("ERROR: SQL error");

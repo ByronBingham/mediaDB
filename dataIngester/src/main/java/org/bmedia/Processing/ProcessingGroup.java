@@ -1,14 +1,21 @@
 package org.bmedia.Processing;
 
+import org.bmedia.IngesterConfig;
+import org.bmedia.Main;
 import org.bmedia.Utils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.security.InvalidParameterException;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -169,7 +176,21 @@ public class ProcessingGroup {
     }
 
     public void addFile(String filePath) {
-        this.mediaProcessor.addAction(filePath, StandardWatchEventKinds.ENTRY_CREATE.name());
+
+        // check if image already exists in DB
+        long imageID = checkForImageInDB(filePath);
+        if(imageID == -1) {
+            this.mediaProcessor.addAction(filePath, StandardWatchEventKinds.ENTRY_CREATE.name());
+        } else {
+            // just update image path if the file already exists in the db
+            String relPath = IngesterConfig.getPathRelativeToShare(filePath);
+            if(relPath == null){
+                System.out.println("WARNING: Could not get share-relative path for \"" + filePath + "\"");
+                return;
+            }
+            String newPath = Utils.toLinuxPath(relPath);
+            updateImagePath(imageID, newPath);
+        }
     }
 
     public void deleteFile(String filePath) {
@@ -179,5 +200,74 @@ public class ProcessingGroup {
     public void kill() {
         this.mediaProcessor.interrupt();
         this.groupListener.interrupt();
+    }
+
+    private long checkForImageInDB(String filePath){
+        String md5 = Utils.getMd5(filePath);
+
+        String query = "SELECT id,resolution_width,resolution_height,file_path,file_size_bytes FROM " + this.fullTableName + " WHERE md5='" + md5 + "';";
+        long imageId = -1;
+        long imageW = -1;
+        long imageH = -1;
+        long imageSizeBytes = -1;
+        String dbPath = null;
+        try(Statement statement = Main.getDbconn().createStatement();){
+
+            ResultSet result = statement.executeQuery(query);
+
+            // no result returned
+            if (!result.next()) {
+                return -1;
+            }
+
+            imageId = result.getLong("id");
+            imageW = result.getLong("resolution_width");
+            imageH = result.getLong("resolution_height");
+            dbPath = result.getString("file_path");
+            imageSizeBytes = result.getLong("file_size_bytes");
+        } catch (SQLException e){
+            System.out.println("SQL Error: \n" + e.getMessage());
+        }
+
+        long[] whs = Utils.getWHS(filePath);
+
+        // if width and height are the same, the images might be the same
+        if(whs[0] == imageW && whs[1] == imageH){
+            // check if db image was deleted
+            if(dbPath == null || !(new File(dbPath).exists())){
+                // if the image was deleted, we can't verify if the images would have been the same, but if the filesize
+                // is the same we can probably assume they were the same image
+                if(whs[2] == imageSizeBytes){
+                    return imageId;
+                }
+                return -1;
+            }
+
+            // check if images are really the same
+            double diff = Utils.getImageDiff(filePath, IngesterConfig.getFullFilePath(dbPath));
+            // if the images are the same
+            if(diff < 0.0000001){
+                return -1;
+            }
+
+        } else {
+            return -1;
+        }
+
+        return imageId;
+    }
+
+    private void updateImagePath(long imageID, String shortPath){
+        System.out.println("INFO: Updating image ID " + imageID + " to path \"" + shortPath);
+
+        String query = "UPDATE " + this.fullTableName + " SET file_path=? WHERE id=?;";
+        try{
+            PreparedStatement statement = Main.getDbconn().prepareStatement(query);
+            statement.setString(1, shortPath);
+            statement.setLong(2, imageID);
+            statement.executeUpdate();
+        } catch (SQLException e){
+            System.out.println("ERROR: SQL Error: \n" + e.getMessage());
+        }
     }
 }
