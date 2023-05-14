@@ -26,6 +26,7 @@ public class IngesterConfig {
     private final boolean removeBrokenPaths;
     private final String pythonExePath;
     private final String ddProjectPath;
+    private final boolean deleteDuplicates;
 
     public static void init(String configPath) throws IOException, ParseException {
         instance = new IngesterConfig(configPath);
@@ -50,6 +51,7 @@ public class IngesterConfig {
         pythonExePath = (String) jsonObj.get("python_exe");
         ddProjectPath = (String) jsonObj.get("dd_project_dir");
         fileShareBaseDir = (String) jsonObj.get("share_base_dir");
+        deleteDuplicates = (boolean) jsonObj.get("delete_duplicates");
     }
 
     public static String getDbHostname() {
@@ -77,10 +79,20 @@ public class IngesterConfig {
     }
 
     public static String getFullFilePath(String subPath) {
-        if(instance.fileShareBaseDir.endsWith("/") || instance.fileShareBaseDir.endsWith("\\")){
-            return instance.fileShareBaseDir + subPath;
+        if(subPath == null){
+            System.out.println("WARNING: \"subPath\" was null");
+            return subPath;
+        }
+        if(subPath.startsWith(instance.fileShareBaseDir))
+        {
+            System.out.println("WARNING: full path passed into \"getFullPath()\"");
+            return subPath;
         } else {
-            return instance.fileShareBaseDir + "/" + subPath;
+            if (instance.fileShareBaseDir.endsWith("/") || instance.fileShareBaseDir.endsWith("\\")) {
+                return instance.fileShareBaseDir + subPath;
+            } else {
+                return instance.fileShareBaseDir + "/" + subPath;
+            }
         }
     }
 
@@ -98,6 +110,10 @@ public class IngesterConfig {
 
     public static String getDdProjectPath() {
         return instance.ddProjectPath;
+    }
+
+    public static boolean getDeleteDuplicates() {
+        return instance.deleteDuplicates;
     }
 
     public static String getPathRelativeToShare(String fullPath) {

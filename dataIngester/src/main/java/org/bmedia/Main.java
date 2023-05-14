@@ -98,6 +98,10 @@ public class Main {
             // Make sure format of strings is same as file system paths
             HashSet<String> dbPaths = new HashSet<>();
             for (String dbPathString : dbPathStrings) {
+                if(dbPathString == null){
+                    System.out.println("WARNING: Null path found in DB paths during initial update");
+                    continue;
+                }
                 dbPaths.add((new File(IngesterConfig.getFullFilePath(dbPathString))).getAbsolutePath());
             }
 
@@ -130,11 +134,11 @@ public class Main {
                 }
             }
 
-            for (String dbPath : dbPaths) {
+            /*for (String dbPath : dbPaths) {
                 if(!(new File(dbPath)).exists()){
                     group.deleteFile(dbPath);
                 }
-            }
+            }*/
         }
 
         System.out.println("INFO: Finished queuing initial DB update");

@@ -55,8 +55,9 @@ public class Utils {
         try {
             fileSizeBytes = Files.size(Path.of(imagePath));
             bimg = ImageIO.read(new File(imagePath));
-        } catch (IOException e) {
+        } catch (IOException | IllegalArgumentException e) {
             System.out.println("ERROR: error getting size of \"" + imagePath + "\". Attempting to convert to a different format");
+            e.printStackTrace();
             Utils.imageToJpg(imagePath);
             return null;
         }
