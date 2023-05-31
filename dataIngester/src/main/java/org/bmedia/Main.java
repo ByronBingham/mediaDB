@@ -89,7 +89,11 @@ public class Main {
                 ResultSet result = statement.executeQuery(query);
 
                 while (result.next()) {
-                    dbPathStrings.add(result.getString("file_path"));
+                    String stringResult = result.getString("file_path");
+                    if(stringResult == null){
+                        continue;
+                    }
+                    dbPathStrings.add(stringResult);
                 }
             } catch (SQLException e) {
                 System.out.println("ERROR: SQL error");
