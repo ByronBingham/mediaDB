@@ -7,6 +7,8 @@ import org.bmedia.Processing.ProcessingGroup;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.*;
 import java.text.ParseException;
 import java.util.*;
@@ -109,6 +111,19 @@ public class Main {
                 dbPaths.add((new File(IngesterConfig.getFullFilePath(dbPathString))).getAbsolutePath());
             }
 
+            // Check for and remove broken paths
+            for(String dbPath: dbPaths){
+                if(!Files.exists(Path.of(dbPath))){
+                    // keep DB entry but set path to null
+                    String relPath = IngesterConfig.getPathRelativeToShare(dbPath);
+                    try {
+                        removeBrokenPathInDB(relPath, group);
+                    } catch (SQLException e){
+                        System.out.println("WARNING: Could not delete path from DB: \"" + relPath + "\"");
+                    }
+                }
+            }
+
             // Get all filesystem paths
             HashSet<String> fsPaths = new HashSet<>();
             for (String path : group.getSourceDirs()) {
@@ -137,12 +152,6 @@ public class Main {
                     group.addFile(fsPath);
                 }
             }
-
-            /*for (String dbPath : dbPaths) {
-                if(!(new File(dbPath)).exists()){
-                    group.deleteFile(dbPath);
-                }
-            }*/
         }
 
         System.out.println("INFO: Finished queuing initial DB update");
@@ -151,5 +160,18 @@ public class Main {
 
     public static Connection getDbconn() {
         return dbconn;
+    }
+
+    private static void removeBrokenPathInDB(String relativeDbPath, ProcessingGroup group) throws SQLException{
+        String baseQuery = "UPDATE " + group.getFullTableName() + " SET file_path=NULL WHERE file_path=?;";
+
+        if(relativeDbPath.startsWith("/") || relativeDbPath.startsWith("\\")){
+            relativeDbPath = relativeDbPath.substring(1);
+        }
+
+        PreparedStatement statement = Main.getDbconn().prepareStatement(baseQuery);
+        statement.setString(1, relativeDbPath);
+        statement.executeUpdate();
+        System.out.println("INFO: Nulled broken path in DB: \"" + relativeDbPath + "\"");
     }
 }

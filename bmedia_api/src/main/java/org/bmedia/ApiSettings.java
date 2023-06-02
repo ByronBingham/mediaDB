@@ -64,6 +64,10 @@ public class ApiSettings {
             System.out.println("ERROR: Environment variable \"MEDIA_SHARE\" is not a directory.");
             return;
         }
+        if (fileShareBaseDir.endsWith("\\") || fileShareBaseDir.endsWith("/"))
+        {
+            fileShareBaseDir = fileShareBaseDir.substring(0, fileShareBaseDir.length() - 1);
+        }
     }
 
 
@@ -105,5 +109,14 @@ public class ApiSettings {
 
     public static String getFullFilePath(String subPath) {
         return instance.fileShareBaseDir + "/" + subPath;
+    }
+
+    public static String getPathRelativeToShare(String fullPath) {
+        if (fullPath.startsWith(instance.fileShareBaseDir)) {
+            return fullPath.substring(instance.fileShareBaseDir.length());
+        } else {
+            System.out.println("ERROR: Full path does not seem to be a subdirectory/file of the base share");
+            return null;
+        }
     }
 }

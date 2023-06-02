@@ -56,4 +56,17 @@ public class Main {
 
         return dbconn;
     }
+
+    public static void removeBrokenPathInDB(String relativeDbPath, String fullTableName) throws SQLException{
+        String baseQuery = "UPDATE " + fullTableName + " SET file_path=NULL WHERE file_path=?;";
+
+        if(relativeDbPath.startsWith("/") || relativeDbPath.startsWith("\\")){
+            relativeDbPath = relativeDbPath.substring(1);
+        }
+
+        PreparedStatement statement = Main.getDbconn().prepareStatement(baseQuery);
+        statement.setString(1, relativeDbPath);
+        statement.executeUpdate();
+        System.out.println("INFO: Nulled broken path in DB: \"" + relativeDbPath + "\"");
+    }
 }
