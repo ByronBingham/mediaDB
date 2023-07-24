@@ -112,7 +112,7 @@ public class Main {
             }
 
             // Check for and remove broken paths
-            for(String dbPath: dbPaths){
+            /*for(String dbPath: dbPaths){
                 if(!Files.exists(Path.of(dbPath))){
                     // keep DB entry but set path to null
                     String relPath = IngesterConfig.getPathRelativeToShare(dbPath);
@@ -122,7 +122,7 @@ public class Main {
                         System.out.println("WARNING: Could not delete path from DB: \"" + relPath + "\"");
                     }
                 }
-            }
+            }*/
 
             // Get all filesystem paths
             HashSet<String> fsPaths = new HashSet<>();
