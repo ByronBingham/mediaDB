@@ -13,41 +13,74 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/**
+ * Utilities class for the ingester
+ */
 public class Utils {
 
-    public static boolean checkForDb(String dbName){
+    /**
+     * **NYI**
+     * Make sure DB with the specified name exists
+     *
+     * @param dbName DB name to check
+     * @return True if the DB exists. Otherwise False
+     */
+    public static boolean checkForDb(String dbName) {
         // TODO: implement
         return true;
     }
 
-    public static String getMd5(String pathString){
+    /**
+     * Gets the MD5 string for a file
+     *
+     * @param pathString Full path to file (relative or absolute, not relative to share path)
+     * @return MD5 string of the specified file. Null if there is an error
+     */
+    public static String getMd5(String pathString) {
         try (InputStream is = Files.newInputStream(Paths.get(pathString))) {
             return DigestUtils.md5Hex(is);
-        } catch (IOException e){
+        } catch (IOException e) {
             System.out.println("WARNING: Issue getting md5 for file \"" + pathString + "\"");
         }
         return null;
     }
 
-    public static void imageToJpg(String pathString){
+    /**
+     * Converts an image into a Jpg. This is meant to reformat images like .webp into a more usable format
+     *
+     * @param pathString Full path to file (relative or absolute, not relative to share path)
+     */
+    public static void imageToJpg(String pathString) {
         try {
             BufferedImage image = ImageIO.read(new File(pathString));
             String filename = FilenameUtils.getName(pathString);
             String newPath = pathString.replaceAll(filename, FilenameUtils.getBaseName(pathString) + ".jpg");
             ImageIO.write(image, "JPG", new File(newPath));
-            if(!new File(pathString).delete()){
+            if (!new File(pathString).delete()) {
                 System.out.println("WARNING: File \"" + pathString + "\" not deleted");
             }
-        } catch (IOException | IllegalArgumentException e){
+        } catch (IOException | IllegalArgumentException e) {
             System.out.println("ERROR: could not convert \"" + pathString + "\" to JPG format");
         }
     }
 
-    public static String toLinuxPath(String path){
+    /**
+     * Change Windows style ( \\ ) file separators with Linux style ( / )
+     *
+     * @param path Path
+     * @return Path with Linux style file separators
+     */
+    public static String toLinuxPath(String path) {
         return path.replace("\\", "/");
     }
 
-    public static long[] getWHS(String imagePath){
+    /**
+     * Gets the width, height, and Size of an image
+     *
+     * @param imagePath Full path to an image (relative or absolute, not relative to share path)
+     * @return Array with 3 elements [ width, height, size (in bytes) ]
+     */
+    public static long[] getWHS(String imagePath) {
         BufferedImage bimg = null;
         long fileSizeBytes = 0;
         long width = 0;
@@ -61,16 +94,27 @@ public class Utils {
             Utils.imageToJpg(imagePath);
             return null;
         }
-        if(bimg != null) {
+        if (bimg != null) {
             width = bimg.getWidth();
             height = bimg.getHeight();
             return new long[]{width, height, fileSizeBytes};
-        } else{
+        } else {
             return null;
         }
     }
 
-    public static double getImageDiff(String img1_path, String img2_path){
+    /**
+     * Gets the per-pixel difference of two images as a percentage. 100.0 being %100 different, and 0.0 being all pixels
+     * the same.
+     * <p>
+     * NOTE: This is probably not the most optimized function. Avoid using unless you really think two images are the
+     * same. e.g. check that the size and dimensions of the images match before calling this function.
+     *
+     * @param img1_path Full path to an image (relative or absolute, not relative to share path)
+     * @param img2_path Full path to an image (relative or absolute, not relative to share path)
+     * @return 0.0 to 100.0 percentage difference. Returns 100.0 (all different) if there is an error
+     */
+    public static double getImageDiff(String img1_path, String img2_path) {
         try {
             BufferedImage img1;
             BufferedImage img2;
@@ -112,7 +156,7 @@ public class Utils {
                 double percentage = (avg / 255) * 100;
                 return percentage;
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             System.out.println("WARNING: Problem getting image diff for \"" + img1_path + " and \"" + img2_path + ":\n" + e.getMessage());
             return 100.0;
         }

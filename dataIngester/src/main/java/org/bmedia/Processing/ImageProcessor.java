@@ -7,11 +7,6 @@ import org.bmedia.Utils;
 import org.bmedia.tagger.ImageTagger;
 import org.bmedia.tagger.ImageWithTags;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.sql.PreparedStatement;
@@ -24,21 +19,39 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * Implementation of {@link MediaProcessor} for processing images
+ */
 public class ImageProcessor extends MediaProcessor<String> {
+
+    // Private variables
+    // TODO: at least some of these could probably be part of the abstract class
 
     ArrayList<QueueAction<String>> dataChunk = new ArrayList<>();
     private AtomicBoolean processing = new AtomicBoolean(false);
 
+    /**
+     * Implementation of {@link TimerTask} used to intermittently check the queue and do processing if there are actions
+     * in the queue
+     */
     private class TimedUpdate extends TimerTask {
 
         ImageProcessor imageProcessor;
 
-        public TimedUpdate(ImageProcessor imageProcessor){
+        /**
+         * Main constructor
+         * @param imageProcessor {@link ImageProcessor}. Should just be set to the instance that creates this TimedUpdate
+         */
+        public TimedUpdate(ImageProcessor imageProcessor) {
             this.imageProcessor = imageProcessor;
         }
+
+        /**
+         * Main timed function
+         */
         @Override
         public void run() {
-            if(!this.imageProcessor.getProcessing()) {
+            if (!this.imageProcessor.getProcessing()) {
                 System.out.println("INFO: Timed update called");
                 this.imageProcessor.doAtomicProcessing();
             }
@@ -50,6 +63,11 @@ public class ImageProcessor extends MediaProcessor<String> {
 
     private long processingIntervalSeconds;
 
+    /**
+     * Main constructor
+     * @param group Parent project group
+     * @param processingIntervalSeconds How often to check for tasking (in seconds)
+     */
     public ImageProcessor(ProcessingGroup group, long processingIntervalSeconds) {
         super(group);
         this.processingIntervalSeconds = processingIntervalSeconds;
@@ -57,24 +75,18 @@ public class ImageProcessor extends MediaProcessor<String> {
         timer.schedule(timedUpdate, processingIntervalSeconds * 1000, processingIntervalSeconds * 1000);
     }
 
-    @Override
-    public boolean removeAction(String data) {
-        if(!this.actionQueue.removeIf(stringQueueAction -> stringQueueAction.getData().equals(data)
-                && stringQueueAction.getActionType().equals(StandardWatchEventKinds.ENTRY_CREATE.name()))){
-            return this.dataChunk.removeIf(stringQueueAction -> stringQueueAction.getData().equals(data)
-                    && stringQueueAction.getActionType().equals(StandardWatchEventKinds.ENTRY_CREATE.name()));
-        } else {
-            return true;
-        }
-    }
-
+    /**
+     * Main loop for this processor. Will keep running until explicitly interrupted
+     */
     @Override
     public void processData() {
         int timesInterrupted = 0;
 
+        // Should keep running indefinitely until explicitly stopped (interrupted)
         while (this.running) {
             try {
-                if(this.getProcessing()){
+                // Skip if the timed function was called while this processor was already processing
+                if (this.getProcessing()) {
                     Thread.sleep(1000); // TODO: make var
                     continue;
                 }
@@ -98,8 +110,11 @@ public class ImageProcessor extends MediaProcessor<String> {
         }
     }
 
-    public synchronized void doAtomicProcessing(){
-        if(this.processing.get()){
+    /**
+     * The actual image processing is done here. There should only be one instance of this function running at one time
+     */
+    public synchronized void doAtomicProcessing() {
+        if (this.processing.get()) {
             return;
         }
         this.setProcessing(true);
@@ -126,23 +141,36 @@ public class ImageProcessor extends MediaProcessor<String> {
         this.setProcessing(false);
     }
 
+    /**
+     * Returns true if this instance is already processing images
+     * @return True if already processing
+     */
     public boolean getProcessing() {
         return processing.get();
     }
 
+    /**
+     * Set the processing state of this processor
+     * @param processing True if this processor is about to start processing. False if this processor is done processing
+     */
     public void setProcessing(boolean processing) {
         this.processing.set(processing);
     }
 
+    /**
+     * Process images and add them into the DB
+     * @param pathStrings List of images to process and add to the DB
+     */
     private void addImagesToDB(ArrayList<String> pathStrings) {
-        if(pathStrings.size() == 0){
+        if (pathStrings.size() == 0) {
             System.out.println("INFO: No paths provided to add");
             return;
         }
+        
         ArrayList<ImageWithTags> imagesWithAutoTags = null;
         if (group.isAuto_tag()) {
             imagesWithAutoTags = ImageTagger.getTagsForImages(pathStrings, group.getTagProbabilityThreshold());
-            if(imagesWithAutoTags.size() == 0){
+            if (imagesWithAutoTags.size() == 0) {
                 System.out.println("ERROR: Something went wrong running DeepDanbooru: no tags were returned");
                 return;
             }
@@ -169,10 +197,10 @@ public class ImageProcessor extends MediaProcessor<String> {
             long width = 0;
             long height = 0;
             long[] whs = Utils.getWHS(pathString);
-            if(whs == null){
+            if (whs == null) {
                 continue;
             } else {
-                if(whs.length != 3){
+                if (whs.length != 3) {
                     System.out.println("ERROR: Error getting width/height/size of image " + pathString);
                     return;
                 }
@@ -187,7 +215,7 @@ public class ImageProcessor extends MediaProcessor<String> {
         pathStrings = newPathStrings;
 
 
-        if(valueArr.size() == 0){
+        if (valueArr.size() == 0) {
             System.out.println("ERROR: No sql values produced for adding images to database");
             return;
         }
@@ -204,7 +232,7 @@ public class ImageProcessor extends MediaProcessor<String> {
 
         // Add at least one tag to every image so all images show up in searches
         ArrayList<ImageWithTags> imagesWithTags = new ArrayList<>();
-        for(String path: pathStrings){
+        for (String path : pathStrings) {
             imagesWithTags.add(new ImageWithTags(path, new ArrayList<>(Arrays.asList(new String[]{"placeholder"}))));
         }
         addTagsToImageInDb(imagesWithTags);
@@ -214,8 +242,8 @@ public class ImageProcessor extends MediaProcessor<String> {
         }
     }
 
-    private void addTagsToImageInDb(ArrayList<ImageWithTags> imagesWithTags){
-        if(imagesWithTags.size() < 1){
+    private void addTagsToImageInDb(ArrayList<ImageWithTags> imagesWithTags) {
+        if (imagesWithTags.size() < 1) {
             System.out.println("WARNING: No tags returned from auto-tagging");
             return;
         }
@@ -229,7 +257,7 @@ public class ImageProcessor extends MediaProcessor<String> {
             }
         }
 
-        String tagQuery = "INSERT INTO " + group.getTargetTableSchema() + ".tags (tag_name, nsfw) VALUES " +
+        String tagQuery = "INSERT INTO " + group.getTargetSchema() + ".tags (tag_name, nsfw) VALUES " +
                 String.join(",", tagValues) + "ON CONFLICT (tag_name) DO NOTHING;";
 
         try (Statement statement = Main.getDbconn().createStatement()) {
@@ -245,11 +273,11 @@ public class ImageProcessor extends MediaProcessor<String> {
             String filename = FilenameUtils.getName(img.getPathString());
             String md5 = Utils.getMd5(img.getPathString());
             long img_id = getIdOfImage(md5, filename);
-            if(img_id == -1){
+            if (img_id == -1) {
                 System.out.println("WARNING: ID not found for image, skipping...");
                 continue;
             }
-            if(md5 == null){
+            if (md5 == null) {
                 System.out.println("ERROR: could not get md5 for \"" + img.getPathString() + "\"");
                 continue;
             }
@@ -269,7 +297,7 @@ public class ImageProcessor extends MediaProcessor<String> {
         }
     }
 
-    private long getIdOfImage(String md5, String filename){
+    private long getIdOfImage(String md5, String filename) {
         long idIndex = -1;
 
         String idQuery = "SELECT (id) FROM " + group.getFullTableName() + " WHERE md5='" + md5 + "' AND filename='" + filename + "'";
@@ -293,13 +321,13 @@ public class ImageProcessor extends MediaProcessor<String> {
     }
 
     private void deleteImagesFromDB(ArrayList<String> pathStrings) {
-        if(pathStrings.size() == 0){
+        if (pathStrings.size() == 0) {
             System.out.println("INFO: No paths provided to delete");
             return;
         }
         String baseQuery = "UPDATE " + group.getFullTableName() + " SET file_path=NULL WHERE file_path=?;";
 
-        try{
+        try {
             PreparedStatement statement = Main.getDbconn().prepareStatement(baseQuery);
             for (String pathString : pathStrings) {
                 if (group.isJfifWebmToJpg() &&
@@ -308,13 +336,13 @@ public class ImageProcessor extends MediaProcessor<String> {
                     continue;
                 }
                 String relPath = IngesterConfig.getPathRelativeToShare(pathString);
-                if(relPath == null){
+                if (relPath == null) {
                     System.out.println("WARNING: Could not get share-relative path for \"" + pathString + "\"");
                     continue;
                 }
                 String path = Utils.toLinuxPath(relPath);
 
-                if(path==null){
+                if (path == null) {
                     System.out.println("WARNING: Could not get Linux path for \"" + IngesterConfig.getPathRelativeToShare(pathString) + "\"");
                     continue;
                 }

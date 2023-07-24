@@ -69,7 +69,7 @@ public class GroupListener extends Thread {
                         return;
                     }
                     if (kind.equals(StandardWatchEventKinds.ENTRY_CREATE)) {
-                        this.group.addFile(canonicalFile);
+                        this.group.addImageFile(canonicalFile);
                     } else if (kind.equals(StandardWatchEventKinds.ENTRY_DELETE)) {
                         /*if(this.mediaProcessor.removeAction(canonicalFile)){
                             continue;
