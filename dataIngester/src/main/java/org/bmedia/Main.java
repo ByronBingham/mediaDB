@@ -161,7 +161,7 @@ public class Main {
     public static Connection getDbconn() {
         return dbconn;
     }
-
+// TODO: this function is also in the ingester; would be best if there could be a library for both services that had one copy of the function
     private static void removeBrokenPathInDB(String relativeDbPath, ProcessingGroup group) throws SQLException{
         String baseQuery = "UPDATE " + group.getFullTableName() + " SET file_path=NULL WHERE file_path=?;";
 
