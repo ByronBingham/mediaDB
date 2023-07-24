@@ -12,6 +12,8 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -69,7 +71,7 @@ public class ImageController {
             }
             query = "SELECT a.id,a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
                     " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.id) = (at.id) " +
-                    nsfwJoinString + " WHERE NOT a.file_path='' " +
+                    nsfwJoinString + " WHERE NOT a.file_path IS NULL " +
                     "GROUP BY (a.id)" + nsfwString2 + " ORDER BY a.id DESC" +
                     " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage + ";";
         } else {
@@ -81,7 +83,7 @@ public class ImageController {
             query = "SELECT a.id,a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
                     " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.id) = (at.id) " +
                     nsfwJoinString +
-                    "WHERE NOT a.file_path='' AND at.tag_name IN (" + tag_string + ") " + nsfwString1 +
+                    "WHERE NOT a.file_path IS NULL AND at.tag_name IN (" + tag_string + ") " + nsfwString1 +
                     "GROUP BY (a.id) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2 + " ORDER BY a.id DESC" +
                     " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage + ";";
         }
@@ -110,7 +112,7 @@ public class ImageController {
 
                 if (includeThumbVal) {
                     String imagePath = result.getString("file_path");
-                    String b64Thumb = getThumbnailForImage(imagePath, thumbHeightVal);
+                    String b64Thumb = getThumbnailForImage(imagePath, thumbHeightVal, tbNameFull);
                     if (b64Thumb == null) {
                         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("FILE IO error");
                     }
@@ -166,7 +168,7 @@ public class ImageController {
                     "(SELECT a.id" +
                     " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.id) = (at.id) " +
                     nsfwJoinString +
-                    "WHERE NOT a.file_path='' GROUP BY (a.id)" + nsfwString2 +
+                    "WHERE NOT a.file_path IS NULL GROUP BY (a.id)" + nsfwString2 +
                     ") AS g;";
         } else {
             // for reference: https://elliotchance.medium.com/handling-tags-in-a-sql-database-5597b9894049
@@ -178,7 +180,7 @@ public class ImageController {
                     "(SELECT a.id" +
                     " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.id) = (at.id) " +
                     nsfwJoinString +
-                    "WHERE NOT a.file_path='' AND at.tag_name IN (" + tag_string + ") " + nsfwString1 +
+                    "WHERE NOT a.file_path IS NULL AND at.tag_name IN (" + tag_string + ") " + nsfwString1 +
                     "GROUP BY (a.id) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2 +
                     ") AS g;";
         }
@@ -229,7 +231,7 @@ public class ImageController {
             if(filePath == null){
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("IOError: this file is probably deleted from the filesystem");
             }
-            b64Thumb = getThumbnailForImage(ApiSettings.getFullFilePath(filePath), thumbHeightVal);
+            b64Thumb = getThumbnailForImage(ApiSettings.getFullFilePath(filePath), thumbHeightVal, tbNameFull);
             if (b64Thumb == null) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error: no results returned from query");
             }
@@ -267,7 +269,7 @@ public class ImageController {
             if(filePath == null){
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("IOError: this file is probably deleted from the filesystem");
             }
-            b64Image = getFullImage_b64(ApiSettings.getFullFilePath(filePath));
+            b64Image = getFullImage_b64(ApiSettings.getFullFilePath(filePath), tbNameFull);
             if (b64Image == null) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error: no results returned from query");
             }
@@ -395,7 +397,7 @@ public class ImageController {
         return ResponseEntity.status(HttpStatus.OK).body("Successfully added tag");
     }
 
-    private String getThumbnailForImage(String imagePath, int thumbHeight) {
+    private String getThumbnailForImage(String imagePath, int thumbHeight, String fullTableName) {
 
         ByteArrayOutputStream boas = new ByteArrayOutputStream();
         String imgExt = FilenameUtils.getExtension(imagePath);
@@ -417,13 +419,22 @@ public class ImageController {
             }
         } catch (IOException e) {
             System.out.println("ERROR: IO error while trying to encode image" + imagePath + ". \n" + e.getMessage());
+            if(!Files.exists(Path.of(imagePath))){
+                // keep DB entry but set path to null
+                String relPath = ApiSettings.getPathRelativeToShare(imagePath);
+                try {
+                    Main.removeBrokenPathInDB(relPath, fullTableName);
+                } catch (SQLException sqlException){
+                    System.out.println("WARNING: Could not delete path from DB: \"" + relPath + "\"");
+                }
+            }
             return null;
         }
         return Base64.getEncoder().encodeToString(boas.toByteArray());
 
     }
 
-    private String getFullImage_b64(String imagePath) {
+    private String getFullImage_b64(String imagePath, String fullTableName) {
         ByteArrayOutputStream boas = new ByteArrayOutputStream();
         try {
             BufferedImage img = ImageIO.read(new File(imagePath));
@@ -434,6 +445,15 @@ public class ImageController {
             }
         } catch (IOException e) {
             System.out.println("ERROR: IO error while trying to encode image " + imagePath + ". \n" + e.getMessage());
+            if(!Files.exists(Path.of(imagePath))){
+                // keep DB entry but set path to null
+                String relPath = ApiSettings.getPathRelativeToShare(imagePath);
+                try {
+                    Main.removeBrokenPathInDB(relPath, fullTableName);
+                } catch (SQLException sqlException){
+                    System.out.println("WARNING: Could not delete path from DB: \"" + relPath + "\"");
+                }
+            }
             return null;
         }
         return Base64.getEncoder().encodeToString(boas.toByteArray());
