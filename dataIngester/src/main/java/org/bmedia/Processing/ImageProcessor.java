@@ -40,6 +40,7 @@ public class ImageProcessor extends MediaProcessor<String> {
 
         /**
          * Main constructor
+         *
          * @param imageProcessor {@link ImageProcessor}. Should just be set to the instance that creates this TimedUpdate
          */
         public TimedUpdate(ImageProcessor imageProcessor) {
@@ -65,7 +66,8 @@ public class ImageProcessor extends MediaProcessor<String> {
 
     /**
      * Main constructor
-     * @param group Parent project group
+     *
+     * @param group                     Parent project group
      * @param processingIntervalSeconds How often to check for tasking (in seconds)
      */
     public ImageProcessor(ProcessingGroup group, long processingIntervalSeconds) {
@@ -143,6 +145,7 @@ public class ImageProcessor extends MediaProcessor<String> {
 
     /**
      * Returns true if this instance is already processing images
+     *
      * @return True if already processing
      */
     public boolean getProcessing() {
@@ -151,6 +154,7 @@ public class ImageProcessor extends MediaProcessor<String> {
 
     /**
      * Set the processing state of this processor
+     *
      * @param processing True if this processor is about to start processing. False if this processor is done processing
      */
     public void setProcessing(boolean processing) {
@@ -159,6 +163,7 @@ public class ImageProcessor extends MediaProcessor<String> {
 
     /**
      * Process images and add them into the DB
+     *
      * @param pathStrings List of images to process and add to the DB
      */
     private void addImagesToDB(ArrayList<String> pathStrings) {
@@ -166,7 +171,8 @@ public class ImageProcessor extends MediaProcessor<String> {
             System.out.println("INFO: No paths provided to add");
             return;
         }
-        
+
+        // Get tags of images
         ArrayList<ImageWithTags> imagesWithAutoTags = null;
         if (group.isAuto_tag()) {
             imagesWithAutoTags = ImageTagger.getTagsForImages(pathStrings, group.getTagProbabilityThreshold());
@@ -214,14 +220,13 @@ public class ImageProcessor extends MediaProcessor<String> {
         }
         pathStrings = newPathStrings;
 
-
         if (valueArr.size() == 0) {
             System.out.println("ERROR: No sql values produced for adding images to database");
             return;
         }
 
+        // Add image data to DB
         query += String.join(",", valueArr.toArray(new String[0])) + "ON CONFLICT (file_path) DO NOTHING;";
-
         try {
             Statement statement = Main.getDbconn().createStatement();
             statement.executeUpdate(query);
@@ -235,14 +240,19 @@ public class ImageProcessor extends MediaProcessor<String> {
         for (String path : pathStrings) {
             imagesWithTags.add(new ImageWithTags(path, new ArrayList<>(Arrays.asList(new String[]{"placeholder"}))));
         }
-        addTagsToImageInDb(imagesWithTags);
+        addTagsToImagesInDb(imagesWithTags);
 
         if (group.isAuto_tag()) {
-            addTagsToImageInDb(imagesWithAutoTags);
+            addTagsToImagesInDb(imagesWithAutoTags);
         }
     }
 
-    private void addTagsToImageInDb(ArrayList<ImageWithTags> imagesWithTags) {
+    /**
+     * Adds tags to existing images in the DB
+     *
+     * @param imagesWithTags List of {@link ImageWithTags}
+     */
+    private void addTagsToImagesInDb(ArrayList<ImageWithTags> imagesWithTags) {
         if (imagesWithTags.size() < 1) {
             System.out.println("WARNING: No tags returned from auto-tagging");
             return;
@@ -257,9 +267,9 @@ public class ImageProcessor extends MediaProcessor<String> {
             }
         }
 
+        // Insert new tags into DB
         String tagQuery = "INSERT INTO " + group.getTargetSchema() + ".tags (tag_name, nsfw) VALUES " +
                 String.join(",", tagValues) + "ON CONFLICT (tag_name) DO NOTHING;";
-
         try (Statement statement = Main.getDbconn().createStatement()) {
             statement.executeUpdate(tagQuery);
         } catch (SQLException e) {
@@ -267,7 +277,7 @@ public class ImageProcessor extends MediaProcessor<String> {
             return;
         }
 
-        // Add tags to images in DB
+        // Add/join tags to images in DB
         ArrayList<String> joinValues = new ArrayList<>();
         for (ImageWithTags img : imagesWithTags) {
             String filename = FilenameUtils.getName(img.getPathString());
@@ -286,10 +296,8 @@ public class ImageProcessor extends MediaProcessor<String> {
                 joinValues.add("(" + img_id + ",'" + tagName + "')");
             }
         }
-
         String joinQuery = "INSERT INTO " + group.getFullTagJoinTableName() + " (id, tag_name) VALUES " +
                 String.join(",", joinValues) + "ON CONFLICT (id, tag_name) DO NOTHING;";
-
         try (Statement statement = Main.getDbconn().createStatement()) {
             statement.executeUpdate(joinQuery);
         } catch (SQLException e) {
@@ -297,6 +305,13 @@ public class ImageProcessor extends MediaProcessor<String> {
         }
     }
 
+    /**
+     * Gets the DB ID for an image given the checksum and filename
+     *
+     * @param md5      MD5 string
+     * @param filename filename (not path)
+     * @return
+     */
     private long getIdOfImage(String md5, String filename) {
         long idIndex = -1;
 
@@ -320,16 +335,25 @@ public class ImageProcessor extends MediaProcessor<String> {
         return idIndex;
     }
 
+    /**
+     * "Deletes" images from the DB by setting the paths of any images with one of the provided paths to null. Setting
+     * paths to null allows the DB to keep tag and any other metadata in case the image is re-added to the DB (or if it
+     * was just moved, etc.)
+     *
+     * @param pathStrings List of paths (relative to fileshare base dir) to remove from the DB
+     */
     private void deleteImagesFromDB(ArrayList<String> pathStrings) {
         if (pathStrings.size() == 0) {
             System.out.println("INFO: No paths provided to delete");
             return;
         }
-        String baseQuery = "UPDATE " + group.getFullTableName() + " SET file_path=NULL WHERE file_path=?;";
 
+        String baseQuery = "UPDATE " + group.getFullTableName() + " SET file_path=NULL WHERE file_path=?;";
         try {
             PreparedStatement statement = Main.getDbconn().prepareStatement(baseQuery);
             for (String pathString : pathStrings) {
+
+                // These file types shouldn't be in the DB to begin with, so just ignore
                 if (group.isJfifWebmToJpg() &&
                         (FilenameUtils.getExtension(pathString).equals("jfif") ||
                                 FilenameUtils.getExtension(pathString).equals("webp"))) {
@@ -341,7 +365,6 @@ public class ImageProcessor extends MediaProcessor<String> {
                     continue;
                 }
                 String path = Utils.toLinuxPath(relPath);
-
                 if (path == null) {
                     System.out.println("WARNING: Could not get Linux path for \"" + IngesterConfig.getPathRelativeToShare(pathString) + "\"");
                     continue;

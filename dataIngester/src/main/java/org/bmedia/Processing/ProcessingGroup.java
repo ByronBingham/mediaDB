@@ -102,7 +102,7 @@ public class ProcessingGroup {
         }
 
         // Initialize a GroupListener for this group
-        groupListener = new GroupListener(this, this.mediaProcessor, 10); // TODO: make var
+        groupListener = new GroupListener(this); // TODO: make var
 
         // Start the processor and listener
         this.mediaProcessor.start();
