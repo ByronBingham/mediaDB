@@ -23,10 +23,7 @@ export class IndexPage extends LitElement {
 					<a href="/${webapp_name}/tagEditor.html" style="color: var(--accent-color-primary);"><b>Tag Editor</b></a>
 					<a href="" style="color: var(--accent-color-primary);">My Account</a>
 				</div>
-			<form action="javascript:goToResults()">
-				<input id="tags-search" name="tags" type="text" placeholder="Ex: blue_sky cloud 1girl">
-				<input name="commit" type="submit" value="Search"><br><br>
-			</form>
+				<search-bar></search-bar>
         </div>`
     }
 

@@ -10,8 +10,8 @@ import { LitElement, html } from 'lit-element';
 export class TagEditor extends LitElement {
     constructor(){
         super();
-        this.controlBar = new TagConrolBar()
-        this.tagList = new TagList()
+        this.tagList = new TagList();
+        this.controlBar = new TagConrolBar(this.tagList);
     }
 
     addTagElement(element){
@@ -31,8 +31,10 @@ export class TagEditor extends LitElement {
  * Template control bar for the tag editor page
  */
 export class TagConrolBar extends LitElement {
-    constructor(){
+    constructor(tagList){
         super();
+
+        this.tagList = tagList;
     }
 
     openAddTagForm(){
@@ -55,12 +57,17 @@ export class TagConrolBar extends LitElement {
         this.shadowRoot.getElementById("nsfw-check").checked = false;
     }
 
-    submitAddTagForm(){
+    submitAddTagForm(event){
         let tagName = this.shadowRoot.getElementById("tag-name-txt").value;
         let nsfw = this.shadowRoot.getElementById("nsfw-check").checked;
         fetch(`http://${apiAddr}/tags/add_tag?tag_name=${tagName}&nsfw=${nsfw}`);
 
-        this.closeAddTagForm();        
+        this.closeAddTagForm();
+        this.tagList.addTag(tagName, nsfw);
+
+        // One or both of these prevents the form from refreshing the page...
+        event.preventDefault();
+        return false;     
     }
 
     render(){
@@ -69,9 +76,11 @@ export class TagConrolBar extends LitElement {
 
                         <div id="add-tag-form" style="display: none;">
                             <button type="button" @click=${this.closeAddTagForm}>X</button>
-                            <input type="text" id="tag-name-txt">
-                            <input type="checkbox" id="nsfw-check">
-                            <button type="button" @click=${this.submitAddTagForm}>Submit</button>
+                            <form @submit="${this.submitAddTagForm}">
+                                <input type="text" id="tag-name-txt">
+                                <input type="checkbox" id="nsfw-check">
+                                <input type="submit" value="Submit">
+                            </form>
                         </div>
                         
                     </div>`;
@@ -104,6 +113,17 @@ export class TagList extends LitElement {
         this.requestUpdate();
     }
 
+    addTag(tagName, nsfw) {
+        this.tagElements.push(new TagElement(tagName, nsfw))
+
+        let sortFunction = function(a, b){
+            return a.getTagName().localeCompare(b.getTagName());
+        }
+
+        this.tagElements.sort(sortFunction);
+        this.requestUpdate();
+    }
+
     setTagElementList(tags){
         this.tagElements = tags;
         this.requestUpdate();
@@ -125,6 +145,10 @@ export class TagElement extends LitElement {
         super();
         this.name = tagName;
         this.nsfw = nsfw;
+    }
+
+    getTagName(){
+        return this.name;
     }
 
     updateTag(){
