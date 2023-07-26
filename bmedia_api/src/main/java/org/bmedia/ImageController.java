@@ -22,10 +22,29 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Optional;
 
+/**
+ * API controller for image-related requests
+ */
 @RestController
 @RequestMapping("/")
 @CrossOrigin(origins = "*")
 public class ImageController {
+
+    /**
+     * Gets a list of images that fit the search criteria. This request will get a specific "page" of results based on
+     * the passed in page number and number of results per page specified. E.g. with a page number of 2 and results-per-
+     * page of 50, this call will return images 100-149 (assuming there are at least 150 images)
+     *
+     * @param tbName         DB table to search
+     * @param tags           Will only return images that include all of these tags
+     * @param pageNum        "Page" number to get results for
+     * @param resultsPerPage Number of images that should be in a "page" (number of images that will be returned)
+     * @param includeThumb   If true, this call will return a base64 encoded thumbnail with each image result
+     * @param thumbHeight    Height (pixels) of thumbnail image (width will be whatever is required to keep the aspect ratio
+     *                       for the given height)
+     * @param includeNsfw    If true, include NSFW results in the results
+     * @return
+     */
     @RequestMapping(value = "/search_images/by_tag/page", produces = "application/json")
     public ResponseEntity<String> search_images_by_tag_page(@RequestParam("table_name") String tbName,
                                                             @RequestParam("tags") String[] tags,
@@ -132,6 +151,15 @@ public class ImageController {
         return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
     }
 
+    /**
+     * Returns the number pages that a query would produce, given a list of tags, number of results per page, and NSFW/SFW
+     *
+     * @param tbName         DB table to search
+     * @param tags           Will only return images that include all of these tags
+     * @param resultsPerPage Number of images that should be in a "page" (number of images that will be returned)
+     * @param includeNsfw    If true, include NSFW results in the results
+     * @return
+     */
     @RequestMapping(value = "/search_images/by_tag/page/count", produces = "application/json")
     public ResponseEntity<String> search_images_by_tag_page_count(@RequestParam("table_name") String tbName,
                                                                   @RequestParam("tags") String[] tags,
@@ -208,6 +236,15 @@ public class ImageController {
         return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
     }
 
+    /**
+     * Gets a base64 encoded thumbnail for an image in the DB
+     *
+     * @param tbName      DB table name
+     * @param id          ID of image in the table
+     * @param thumbHeight Height (pixels) the thumbnail should be (width will be whatever is required to keep the aspect ratio
+     *                    *                    for the given height)
+     * @return
+     */
     @RequestMapping(value = "/images/get_thumbnail", produces = "application/json")
     public ResponseEntity<String> get_image_thumbnail(@RequestParam("table_name") String tbName,
                                                       @RequestParam("id") long id,
@@ -228,7 +265,7 @@ public class ImageController {
             }
 
             String filePath = result.getString("file_path");
-            if(filePath == null){
+            if (filePath == null) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("IOError: this file is probably deleted from the filesystem");
             }
             b64Thumb = getThumbnailForImage(ApiSettings.getFullFilePath(filePath), thumbHeightVal, tbNameFull);
@@ -248,6 +285,13 @@ public class ImageController {
         return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
     }
 
+    /**
+     * Gets a full image from the DB as a base64 encoded string
+     *
+     * @param tbName DB table name
+     * @param id     ID of image in the table
+     * @return
+     */
     @RequestMapping(value = "/images/get_image_full", produces = "application/json")
     public ResponseEntity<String> get_image_full(@RequestParam("table_name") String tbName,
                                                  @RequestParam("id") long id) {
@@ -266,7 +310,7 @@ public class ImageController {
             }
 
             String filePath = result.getString("file_path");
-            if(filePath == null){
+            if (filePath == null) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("IOError: this file is probably deleted from the filesystem");
             }
             b64Image = getFullImage_b64(ApiSettings.getFullFilePath(filePath), tbNameFull);
@@ -286,6 +330,13 @@ public class ImageController {
         return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
     }
 
+    /**
+     * Get a list of the tags for an image in the DB
+     *
+     * @param tbName DB table name
+     * @param id     ID of image in the table
+     * @return
+     */
     @RequestMapping(value = "/images/get_tags", produces = "application/json")
     public ResponseEntity<String> get_image_tags(@RequestParam("table_name") String tbName,
                                                  @RequestParam("id") long id) {
@@ -322,6 +373,16 @@ public class ImageController {
         return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
     }
 
+    /**
+     * Adds a tag to an image in the DB
+     *
+     * @param tbName        DB table name
+     * @param id            ID of image in the table
+     * @param tagName       Name of tag to add (does not have to already be in the DB)
+     * @param nsfw          If true, will set the tag to NSFW (will overwrite this setting for existing tags as well)
+     * @param overwriteNsfw Overwrite the NSFW setting for an existing tag
+     * @return
+     */
     @RequestMapping(value = "/images/add_tag", produces = "application/json")
     public ResponseEntity<String> add_tag_to_image(@RequestParam("table_name") String tbName,
                                                    @RequestParam("id") long id,
@@ -339,7 +400,7 @@ public class ImageController {
         String tagJoinTableName = tbName + "_tags_join";
 
         String query1 = "INSERT INTO " + schemaName + ".tags (tag_name, nsfw) VALUES (?, ?) ON CONFLICT (tag_name) DO";
-        if(overwriteNsfwVal){
+        if (overwriteNsfwVal) {
             query1 += " UPDATE SET nsfw = " +
                     "EXCLUDED.nsfw;";
         } else {
@@ -370,6 +431,14 @@ public class ImageController {
         return ResponseEntity.status(HttpStatus.OK).body("Successfully added tag");
     }
 
+    /**
+     * Deletes a tag for an image in the DB
+     *
+     * @param tbName  DB table name
+     * @param id      ID of image in the table
+     * @param tagName Name of tag to add (does not have to already be in the DB)
+     * @return
+     */
     @RequestMapping(value = "/images/delete_tag", produces = "application/json")
     public ResponseEntity<String> delte_tag_for_image(@RequestParam("table_name") String tbName,
                                                       @RequestParam("id") String id,
@@ -397,6 +466,16 @@ public class ImageController {
         return ResponseEntity.status(HttpStatus.OK).body("Successfully added tag");
     }
 
+    /**
+     * Create a thumbnail for an image
+     *
+     * @param imagePath     Full path to an image
+     * @param thumbHeight   Height (pixels) of thumbnail image (width will be whatever is required to keep the aspect ratio
+     *                      for the given height)
+     * @param fullTableName Table name ([schema_name].[table_name]) of image. This is used in case the image's path is
+     *                      broken and needs removed form the DB
+     * @return
+     */
     private String getThumbnailForImage(String imagePath, int thumbHeight, String fullTableName) {
 
         ByteArrayOutputStream boas = new ByteArrayOutputStream();
@@ -419,12 +498,12 @@ public class ImageController {
             }
         } catch (IOException e) {
             System.out.println("ERROR: IO error while trying to encode image" + imagePath + ". \n" + e.getMessage());
-            if(!Files.exists(Path.of(imagePath))){
+            if (!Files.exists(Path.of(imagePath))) {
                 // keep DB entry but set path to null
                 String relPath = ApiSettings.getPathRelativeToShare(imagePath);
                 try {
                     Main.removeBrokenPathInDB(relPath, fullTableName);
-                } catch (SQLException sqlException){
+                } catch (SQLException sqlException) {
                     System.out.println("WARNING: Could not delete path from DB: \"" + relPath + "\"");
                 }
             }
@@ -434,6 +513,14 @@ public class ImageController {
 
     }
 
+    /**
+     * Gets a base64 encoded representation of an image
+     *
+     * @param imagePath     Full path to an image
+     * @param fullTableName Table name ([schema_name].[table_name]) of image. This is used in case the image's path is
+     *                      broken and needs removed form the DB
+     * @return
+     */
     private String getFullImage_b64(String imagePath, String fullTableName) {
         ByteArrayOutputStream boas = new ByteArrayOutputStream();
         try {
@@ -445,12 +532,12 @@ public class ImageController {
             }
         } catch (IOException e) {
             System.out.println("ERROR: IO error while trying to encode image " + imagePath + ". \n" + e.getMessage());
-            if(!Files.exists(Path.of(imagePath))){
+            if (!Files.exists(Path.of(imagePath))) {
                 // keep DB entry but set path to null
                 String relPath = ApiSettings.getPathRelativeToShare(imagePath);
                 try {
                     Main.removeBrokenPathInDB(relPath, fullTableName);
-                } catch (SQLException sqlException){
+                } catch (SQLException sqlException) {
                     System.out.println("WARNING: Could not delete path from DB: \"" + relPath + "\"");
                 }
             }
