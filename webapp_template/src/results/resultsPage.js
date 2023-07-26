@@ -1,8 +1,15 @@
+/**
+ * File to store functions used in the results page
+ */
+
 import {ResultPageElement, ResultsPage} from './resultsTemplates';
 import { getNswfCookie } from '../util';
 
 var resultPage = undefined;
 
+/**
+ * Get results for the page from the API when the page loads
+ */
 window.onDocLoad = function(){
     let params = (new URL(document.location)).searchParams;
     let searchString = params.get("search");
@@ -20,6 +27,11 @@ window.onDocLoad = function(){
     }
 }
 
+/**
+ * Handes the reponse from the API for a thumbnail
+ * 
+ * @param {*} data 
+ */
 const handleThumbResponse = function(data){
     let id = data["id"];
     let b64Thumb = data["thumb_base64"];
@@ -27,6 +39,11 @@ const handleThumbResponse = function(data){
     resultPage.addResultElement(new ResultPageElement(id, b64Thumb));
 }
 
+/**
+ * Handes the reponse from the API for page results
+ * 
+ * @param {*} data 
+ */
 const handleSearchResponse = function(data){
     document.getElementById("results-div").appendChild(resultPage);
 
@@ -47,6 +64,12 @@ const handleSearchResponse = function(data){
     });
 }
 
+/**
+ * Sends an API request for page results
+ * 
+ * @param {*} tagsString The search string including a list (space delimited) of tags to search for
+ * @param {*} pageNum Page number to get results for
+ */
 const sendSearchRequest = function(tagsString, pageNum){
     // query API
     let nsfw = getNswfCookie()

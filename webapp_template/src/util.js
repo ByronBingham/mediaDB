@@ -1,3 +1,11 @@
+/**
+ * File with utility functions
+ */
+
+/**
+ * Gets the NSFW cookie
+ * @returns true/false
+ */
 export function getNswfCookie(){
     let val = getCookie("nsfw");
     if(val === ""){
@@ -11,10 +19,19 @@ export function getNswfCookie(){
     }
 }
 
+/**
+ * Sets the NSFW cookie
+ */
 export function setNswfCookie(bool){
     document.cookie = "nsfw=" + bool.toString() + ";";
 }
 
+/**
+ * Gets a specific browser cookie for this site
+ * 
+ * @param {*} cname Cookie name
+ * @returns The value of the cookie. Returns an empty string if the cookie is not found
+ */
 export function getCookie(cname) {
     let name = cname + "=";
     let decodedCookie = decodeURIComponent(document.cookie);

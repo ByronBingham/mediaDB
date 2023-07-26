@@ -1,5 +1,12 @@
+/**
+ * File to store templates used in image viewer page
+ */
+
 import { LitElement, html } from 'lit-element';
 
+/**
+ * Template for the image viewer page
+ */
 export class ImageViewer extends LitElement {
 
     constructor(id, imageData){
@@ -20,6 +27,9 @@ export class ImageViewer extends LitElement {
 
 }
 
+/**
+ * Template for control bar with image viewer settings
+ */
 export class ImageTagConrolBar extends LitElement {
     constructor(id, imageTagList){
         super();
@@ -84,6 +94,9 @@ export class ImageTagConrolBar extends LitElement {
     }
 }
 
+/**
+ * Template tag list for the image viewer page
+ */
 export class ImageTagList extends LitElement {
     constructor(id){
         super();
@@ -169,6 +182,9 @@ export class ImageTagList extends LitElement {
     }
 }
 
+/**
+ * Template for individual tag element in image viewer tag list
+ */
 export class ImageTag extends LitElement {
     constructor(tagName, nsfw){
         super();
@@ -191,6 +207,9 @@ export class ImageTag extends LitElement {
     }
 }
 
+/**
+ * Template for individual, editable tag element in image viewer tag list
+ */
 export class EditTagElement extends LitElement {
     constructor(tagName, nsfw, imageTagList, id){
         super();
@@ -228,6 +247,7 @@ export class EditTagElement extends LitElement {
     }
 }
 
+// Register elements
 customElements.define('image-viewer', ImageViewer);
 customElements.define('image-tag-list', ImageTagList);
 customElements.define('image-tag', ImageTag);

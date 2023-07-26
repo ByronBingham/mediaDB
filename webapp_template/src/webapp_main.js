@@ -1,3 +1,7 @@
+/**
+ * Entry point for all JS in the web UI
+ */
+
 import {IndexPage} from './indexTemplate.js';
 
 window.goToResults = function() {

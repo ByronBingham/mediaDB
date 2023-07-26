@@ -1,8 +1,15 @@
+/**
+ * This file defines functions used by the image viewer page
+ */
+
 import { ImageViewer, ImageTagList, ImageTag } from "./viewerTemplates";
 
 var imageViewer = undefined;
 var imageTagList = undefined;
 
+/**
+ * When the page loads, get the image and tags from the API
+ */
 window.onDocLoad = function(){
     let params = (new URL(document.location)).searchParams;
     let id = params.get("id");
@@ -14,6 +21,11 @@ window.onDocLoad = function(){
     imageTagList = new ImageTagList(id);
 }
 
+/**
+ * Handles the API's response for an image
+ * 
+ * @param {*} data 
+ */
 const handleImageResponse = function(data){
     let id = data["id"];
     let imageData = data["image_base64"];
@@ -22,6 +34,11 @@ const handleImageResponse = function(data){
     document.getElementById("image-viewer").appendChild(imageViewer);
 }
 
+/**
+ * Handles the API's response for an image's tags
+ * 
+ * @param {*} data 
+ */
 const handleTagsResponse = function(data){
     let tagList = data;
     console.log("got tags");
@@ -32,6 +49,11 @@ const handleTagsResponse = function(data){
     });    
 }
 
+/**
+ * Request an image from the API
+ * 
+ * @param {*} id Image ID to request
+ */
 const sendImageRequest = function(id){    
     // query API
     let requestString = `http://${apiAddr}/images/get_image_full?table_name=${dbTableName}&id=${id}`;
@@ -45,6 +67,11 @@ const sendImageRequest = function(id){
     
 }
 
+/**
+ * Request an image's tags from the API
+ * 
+ * @param {*} id Image ID to request tags for
+ */
 const sendTagsRequest = function(id){
     // query API
     let requestString = `http://${apiAddr}/images/get_tags?table_name=${dbTableName}&id=${id}`;

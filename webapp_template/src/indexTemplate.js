@@ -1,6 +1,8 @@
 import { LitElement, html } from 'lit-element';
 
-
+/**
+ * Template for a home/index page
+ */
 export class IndexPage extends LitElement {
 
     constructor(){
@@ -30,4 +32,5 @@ export class IndexPage extends LitElement {
 
 }
 
+// Register elements
 customElements.define('index-page', IndexPage);
