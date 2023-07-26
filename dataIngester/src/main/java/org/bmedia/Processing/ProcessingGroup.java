@@ -20,16 +20,34 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 
+/**
+ * Processing groups process 1 or more directory(s) that contain images to be processed. This allows the end user to
+ * add different groups of folders to separate DB tables. Each processing group only processes the images found in the
+ * folders specified in the ingester's config.
+ * <p>
+ * Processing groups store the information about the group (which DB/table/folders/etc.). The associated
+ * {@link MediaProcessor} Handles the queing and processing of the group's images, and the group's {@link GroupListener}
+ * handles checking for new/moved/deleted images and adding tasks to the {@link MediaProcessor}'s queue.
+ * <p>
+ * TODO: this class will need to be generalized more when new media types are added
+ */
 public class ProcessingGroup {
 
+    /**
+     * Enum for the different types of media that the ingester can handle
+     * <p>
+     * NOTE: currently only the IMAGE type is implemented
+     */
     enum MEDIA_TYPE {
         IMAGE
     }
 
+    // Private variables
     private final String name;
     private final ArrayList<String> sourceDirs;
-    private final String targetTableSchema;
+    private final String targetSchema;
     private final String targetTableName;
+    // Full table name. e.g. "schema_name.table_name"
     private final String fullTableName;
     private final boolean autoTag;
     private final boolean jfifWebmToJpg;
@@ -42,22 +60,38 @@ public class ProcessingGroup {
 
     private final GroupListener groupListener;
 
-    public ProcessingGroup(String name, ArrayList<String> sourceDirs, String targetDbSchema, String targetDbName, boolean autoTag,
-                           boolean jfifWebmToJpg, ArrayList<String> valid_extensions, MEDIA_TYPE mediaType, double tagProbabilityThreshold, long chunkSize) throws IOException {
+    /**
+     * Main constructor
+     *
+     * @param name                    Name of the processing group
+     * @param sourceDirs              List of directories to check for media
+     * @param targetDbSchema          Name of the DB schema to use
+     * @param targetTableName         Name of the DB table to use
+     * @param autoTag                 True if media should be auto-tagged (only applies to images currently)
+     * @param jfifWebmToJpg           True if oddball filetypes shoudl be converted to more standard types
+     * @param validExtensions         List of file extensions to check for. All other file extensions will be ignored
+     * @param mediaType               The type of media that this group will process
+     * @param tagProbabilityThreshold Ignore auto-detected tags with a confidence/probability under this threshold. Should be 0.0-1.0
+     * @param chunkSize               This number specifies how many files will be processed at once by the ingester. Use a lower number if you run into memory/resource issues
+     * @throws IOException
+     */
+    public ProcessingGroup(String name, ArrayList<String> sourceDirs, String targetDbSchema, String targetTableName, boolean autoTag,
+                           boolean jfifWebmToJpg, ArrayList<String> validExtensions, MEDIA_TYPE mediaType, double tagProbabilityThreshold, long chunkSize) throws IOException {
         this.name = name;
         this.sourceDirs = sourceDirs;
-        this.targetTableSchema = targetDbSchema;
-        this.targetTableName = targetDbName;
+        this.targetSchema = targetDbSchema;
+        this.targetTableName = targetTableName;
         this.autoTag = autoTag;
         this.jfifWebmToJpg = jfifWebmToJpg;
         this.mediaType = mediaType;
-        this.valid_extensions = valid_extensions;
+        this.valid_extensions = validExtensions;
         this.tagProbabilityThreshold = tagProbabilityThreshold;
         this.chunkSize = chunkSize;
 
-        this.fullTableName = targetDbSchema + ((!targetDbSchema.equals("")) ? "." : "") + targetDbName;
+        // Full table name. e.g. "schema_name.table_name"
+        this.fullTableName = targetDbSchema + ((!targetDbSchema.equals("")) ? "." : "") + targetTableName;
 
-
+        // Initialize a MediaProcessor for this group
         switch (this.mediaType) {
             case IMAGE:
                 this.mediaProcessor = new ImageProcessor(this, 30); // TODO: make var
@@ -66,12 +100,23 @@ public class ProcessingGroup {
                 System.out.println("ERROR: \"" + this.mediaType + "\" is not a valid media type");
                 throw new InvalidParameterException("\"" + this.mediaType + "\" is not a valid media type");
         }
-        groupListener = new GroupListener(this, this.mediaProcessor, 10); // TODO: make var
 
+        // Initialize a GroupListener for this group
+        groupListener = new GroupListener(this); // TODO: make var
+
+        // Start the processor and listener
         this.mediaProcessor.start();
         this.groupListener.start();
     }
 
+    /**
+     * Creates a list of processing groups based on the ingester's JSON config file
+     * <p>
+     * TODO: the JSON needs validated at some point, whether here, or before it gets here
+     *
+     * @param jsonFile Ingester config file
+     * @return List of initialized {@link ProcessingGroup}
+     */
     public static ArrayList<ProcessingGroup> createGroupsFromFile(String jsonFile) {
         ArrayList<ProcessingGroup> out = new ArrayList<>();
 
@@ -109,6 +154,7 @@ public class ProcessingGroup {
                 ArrayList<String> validExtensions = new ArrayList(Arrays.asList(((JSONArray) groupObj.get("valid_extensions")).toArray()));
                 long chunkSize = (long) groupObj.get("chunk_size");
 
+                // Create new processing group and add it to the list
                 ProcessingGroup newGroup;
                 try {
                     newGroup = new ProcessingGroup(groupName, sourceDirs, dbSchema, dbName, autoTag, jfifWebmFlag,
@@ -127,64 +173,130 @@ public class ProcessingGroup {
         return out;
     }
 
+    /**
+     * Gets processing group name
+     *
+     * @return processing group name
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * Gets list of dirs this processing group is looking in
+     *
+     * @return list of directories
+     */
     public ArrayList<String> getSourceDirs() {
         return sourceDirs;
     }
 
-    public String getTargetTableSchema() {
-        return targetTableSchema;
+    /**
+     * Gets the name of the DB schema this processing group is using
+     *
+     * @return DB schema name
+     */
+    public String getTargetSchema() {
+        return targetSchema;
     }
 
+    /**
+     * Gets the name of the DB table name this processing group is using
+     *
+     * @return DB table name
+     */
     public String getTargetTableName() {
         return targetTableName;
     }
 
+    /**
+     * Gets the full name of the table this processing group is using, including the schema name. e.g. "schema_name.table_name"
+     *
+     * @return DB schema + table name
+     */
     public String getFullTableName() {
         return this.fullTableName;
     }
 
+    /**
+     * Gets the full name of the tag join table this processing group is using, including the schema name. e.g. "schema_name.table_name"
+     *
+     * @return DB schema + table name
+     */
     public String getFullTagJoinTableName() {
         return this.fullTableName + "_tags_join";
     }
 
+    /**
+     * Whether or not this group is doing auto-tagging
+     *
+     * @return True if this processing group is auto-tagging media
+     */
     public boolean isAuto_tag() {
         return autoTag;
     }
 
+    /**
+     * Whether or not this processing group will convert file's to more usable formats.
+     *
+     * @return True if this group will convert file formats
+     */
     public boolean isJfifWebmToJpg() {
         return jfifWebmToJpg;
     }
 
+    /**
+     * Gets the list of file extensions that this processing group will look for
+     *
+     * @return List of file extensions
+     */
     public ArrayList<String> getValidExtensions() {
         return valid_extensions;
     }
 
+    /**
+     * Gets the probability threshold this processing group uses to keep/ignore auto-generated tags. Should be between
+     * 0.0 and 1.0
+     *
+     * @return Probability threshold
+     */
     public double getTagProbabilityThreshold() {
         return tagProbabilityThreshold;
     }
 
+    /**
+     * Gets the chunk size for this processing group. The group will process at most this number of files at once
+     *
+     * @return chunk size
+     */
     public long getChunkSize() {
         return chunkSize;
     }
 
+    /**
+     * {@link GroupListener} object for this processing group
+     *
+     * @return {@link GroupListener}
+     */
     public GroupListener getGroupListener() {
         return groupListener;
     }
 
-    public void addFile(String filePath) {
+    /**
+     * Adds a file to the processing queue for this group's processor. If this image already exists in the DB, the DB
+     * entry is simply updated to use the provided path instead of re-processing the image
+     * @param filePath (Absolute/full) path of image to add
+     */
+    public void addImageFile(String filePath) {
 
         // check if image already exists in DB
         long imageID = checkForImageInDB(filePath);
-        if(imageID == -1) {
+        if (imageID == -1) {
             this.mediaProcessor.addAction(filePath, StandardWatchEventKinds.ENTRY_CREATE.name());
         } else {
             // just update image path if the file already exists in the db
             String relPath = IngesterConfig.getPathRelativeToShare(filePath);
-            if(relPath == null){
+            if (relPath == null) {
                 System.out.println("WARNING: Could not get share-relative path for \"" + filePath + "\"");
                 return;
             }
@@ -193,25 +305,31 @@ public class ProcessingGroup {
         }
     }
 
-    public void deleteFile(String filePath) {
-        this.mediaProcessor.addAction(filePath, StandardWatchEventKinds.ENTRY_DELETE.name());
-    }
-
+    /**
+     * Stops and processing this group is doing
+     */
     public void kill() {
         this.mediaProcessor.interrupt();
         this.groupListener.interrupt();
     }
 
-    private long checkForImageInDB(String filePath){
-        String md5 = Utils.getMd5(filePath);
+    /**
+     * Checks if the given image file already exists in the DB. This function will do some initial checks (checksum,
+     * file size, width, height) and if everything else matches, it will check if the images are the same on a per-pixel basis
+     * @param filePath Path (absolute/full) of image to check
+     * @return -1 if no DB image is found. If a matching DB entry is found, the matching image's ID will be returned
+     */
+    private long checkForImageInDB(String filePath) {
 
+        // check for matching checksum
+        String md5 = Utils.getMd5(filePath);
         String query = "SELECT id,resolution_width,resolution_height,file_path,file_size_bytes FROM " + this.fullTableName + " WHERE md5='" + md5 + "';";
         long imageId = -1;
         long imageW = -1;
         long imageH = -1;
         long imageSizeBytes = -1;
         String dbPath = null;
-        try(Statement statement = Main.getDbconn().createStatement();){
+        try (Statement statement = Main.getDbconn().createStatement();) {
 
             ResultSet result = statement.executeQuery(query);
 
@@ -225,35 +343,36 @@ public class ProcessingGroup {
             imageH = result.getLong("resolution_height");
             dbPath = result.getString("file_path");
             imageSizeBytes = result.getLong("file_size_bytes");
-        } catch (SQLException e){
+        } catch (SQLException e) {
             System.out.println("SQL Error: \n" + e.getMessage());
         }
 
+        // Check dimensions and file size
         long[] whs = Utils.getWHS(filePath);
-
         String fullDbPath = IngesterConfig.getFullFilePath(dbPath);
-        // if width and height are the same, the images might be the same
-        if(whs[0] == imageW && whs[1] == imageH){
-            // check if db image was deleted
-            if(dbPath == null || !(new File(fullDbPath).exists())){
-                // if the image was deleted, we can't verify if the images would have been the same, but if the filesize
-                // is the same we can probably assume they were the same image
-                if(whs[2] == imageSizeBytes){
+        // If width and height are the same, the images might be the same
+        if (whs[0] == imageW && whs[1] == imageH) {
+            // Check if db image was deleted
+            if (dbPath == null || !(new File(fullDbPath).exists())) {
+                // If the image was deleted, we can't verify if the images would have been the same, but if the filesize
+                // Is the same we can probably assume they were the same image
+                if (whs[2] == imageSizeBytes) {
                     return imageId;
                 } else {
                     return -1;
                 }
             }
 
-            // check if images are really the same
+            // Check if images are really the same
             double diff = Utils.getImageDiff(filePath, IngesterConfig.getFullFilePath(dbPath));
-            // if the images are the same
-            if(diff < 0.0000001){
-                if(IngesterConfig.getDeleteDuplicates()){
+            // If the images are the same
+            // TODO: make this threshold configurable
+            if (diff < 0.0000001) {
+                if (IngesterConfig.getDeleteDuplicates()) {
                     try {
                         System.out.println("INFO: Deleting duplicate: \"" + fullDbPath + "\"");
                         Files.delete(Path.of(fullDbPath));
-                    } catch (IOException e){
+                    } catch (IOException e) {
                         System.out.println("WARNING: Could not delete duplicate \"" + fullDbPath + "\"");
                     }
                 }
@@ -267,16 +386,21 @@ public class ProcessingGroup {
         }
     }
 
-    private void updateImagePath(long imageID, String shortPath){
+    /**
+     * Updates a DB entry with the provided path. Use this if an image has moved or a duplicate was deleted
+     * @param imageID DB entry ID of the image to update
+     * @param shortPath Path (relative to the file share's base directory) to update
+     */
+    private void updateImagePath(long imageID, String shortPath) {
         System.out.println("INFO: Updating image ID " + imageID + " to path \"" + shortPath);
 
         String query = "UPDATE " + this.fullTableName + " SET file_path=? WHERE id=?;";
-        try{
+        try {
             PreparedStatement statement = Main.getDbconn().prepareStatement(query);
             statement.setString(1, shortPath);
             statement.setLong(2, imageID);
             statement.executeUpdate();
-        } catch (SQLException e){
+        } catch (SQLException e) {
             System.out.println("ERROR: SQL Error: \n" + e.getMessage());
         }
     }

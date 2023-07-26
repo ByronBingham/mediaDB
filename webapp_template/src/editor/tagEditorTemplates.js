@@ -1,5 +1,12 @@
+/**
+ * File to store templates used in the tag editor page
+ */
+
 import { LitElement, html } from 'lit-element';
 
+/**
+ * Template for a tag editor page. Includes a top bar with controls and a editable list of tags
+ */
 export class TagEditor extends LitElement {
     constructor(){
         super();
@@ -20,6 +27,9 @@ export class TagEditor extends LitElement {
     }
 }
 
+/**
+ * Template control bar for the tag editor page
+ */
 export class TagConrolBar extends LitElement {
     constructor(){
         super();
@@ -68,6 +78,9 @@ export class TagConrolBar extends LitElement {
     }
 }
 
+/**
+ * Template tag list for the tag editor page
+ */
 export class TagList extends LitElement {
     constructor(){
         super();
@@ -104,6 +117,9 @@ export class TagList extends LitElement {
     }
 }
 
+/**
+ * Template for an individual element of the tag list
+ */
 export class TagElement extends LitElement {
     constructor(tagName, nsfw){
         super();
@@ -129,6 +145,7 @@ export class TagElement extends LitElement {
     }
 }
 
+// Register elements
 customElements.define('tag-editor', TagEditor);
 customElements.define('tag-control-bar', TagConrolBar);
 customElements.define('tag-list', TagList);

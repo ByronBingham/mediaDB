@@ -1,5 +1,12 @@
+/**
+ * File to store templates used in the results page
+ */
+
 import { LitElement, html } from 'lit-element';
 
+/**
+ * Template for an individual page result
+ */
 export class ResultPageElement extends LitElement {
 
     constructor(id, b64image){
@@ -23,6 +30,9 @@ export class ResultPageElement extends LitElement {
 
 }
 
+/**
+ * Template for the results page
+ */
 export class ResultsPage extends LitElement {
     constructor(){
         super();
@@ -43,6 +53,6 @@ export class ResultsPage extends LitElement {
     }
 }
 
-
+// Register elements
 customElements.define('result-page-element', ResultPageElement);
 customElements.define('result-page', ResultsPage);

@@ -1,3 +1,7 @@
+/**
+ * Settings file for the web UI. Fill out this file before deploying a new web UI
+ */
+
 const dbTableName = '[table name]';
 const default_images_per_page=50;
 const webapp_name = '[webapp name]';

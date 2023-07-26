@@ -6,30 +6,32 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+/**
+ * Utility class used to get auto-generated tags for images
+ * <p>
+ * Uses the DeepDanbooru project (<a href="https://github.com/KichangKim/DeepDanbooru">Link to repo here</a>)
+ */
 public class ImageTagger {
 
-    private static String runDeepdanbooru(ArrayList<String> imagePaths){
-        ArrayList<String> fullCommand = new ArrayList<>();
+    /**
+     * Runs DeepDanbooru to get image tags for a list of image paths
+     *
+     * @param imagePaths List of images to tag
+     * @return Returns the full DeepDanbooru output
+     */
+    private static String runDeepdanbooru(ArrayList<String> imagePaths) {
         String out = "";
 
         String ddcmd = IngesterConfig.getPythonExePath() + " -m deepdanbooru evaluate --project-path \"" + IngesterConfig.getDdProjectPath() + "\" --allow-gpu";
-        for(String path: imagePaths){
-            if(path.contains("\"")){
+        for (String path : imagePaths) {
+            if (path.contains("\"")) {
                 System.out.println("ERROR: Illegal character '\"' found in path");
                 continue;
             }
             ddcmd += " \"" + path.replace("`", "``") + "\" ";
         }
 
-        if(System.getProperty("os.name").toLowerCase().contains("windows")){
-            fullCommand = new ArrayList<>(Arrays.asList(ddcmd));
-        } else if(System.getProperty("os.name").toLowerCase().contains("linux")) {
-            fullCommand = null;
-        } else {
-            System.out.println("ERROR: unsupported OS detected");
-            return null;
-        }
-
+        // Run DeepDanbooru
         try {
             Process process = Runtime.getRuntime().exec("powershell.exe");
 
@@ -44,21 +46,25 @@ public class ImageTagger {
             cmdWriter.flush();
             cmdWriter.close();
 
+            // Get STD out
             String line;
             while ((line = stdInput.readLine()) != null) {
                 out += line + "\n";
             }
 
+            // Get err out
             String errLine;
             String errOut = "";
             while ((errLine = stdError.readLine()) != null) {
                 errOut += errLine + "\n";
             }
-            if(!errOut.equals("")){
-                if(errOut.contains("not exist")){
+
+            // Check if there were any errors while running the command
+            if (!errOut.equals("")) {
+                if (errOut.contains("not exist")) {
                     System.out.println("WARNING: Filed passed into DD did not exist: ");
                     System.out.println(errOut);
-                }else if(!errOut.contains("Cleanup called")) {
+                } else if (!errOut.contains("Cleanup called")) {
                     System.out.println("WARNING: DD did not exit successfully: ");
                     System.out.println(errOut);
                 }
@@ -71,33 +77,44 @@ public class ImageTagger {
 
             stdInput.close();
             stdError.close();
-        } catch (IOException | InterruptedException e){
+        } catch (IOException | InterruptedException e) {
             System.out.println("ERROR: Error encountered while running DeepDanbooru");
         }
 
         return out;
     }
 
-    private static ArrayList<ImageWithTags> parseDDOutput(String data, double tagProbThres){
+    /**
+     * Parses a DeepDanbooru input string into a list of {@link ImageWithTags}
+     *
+     * @param data         DeepDanbooru output
+     * @param tagProbThres Tag probability threshold. Any tags with a confidence below this number will not be added to
+     *                     the tag list
+     * @return list of {@link ImageWithTags}
+     */
+    private static ArrayList<ImageWithTags> parseDDOutput(String data, double tagProbThres) {
+
+        // Split output by image
         String[] sections = data.split("Tags of ");
         ArrayList<ImageWithTags> images = new ArrayList<>();
 
-        for(String section: sections){
-            if (section.equals("") || section.toLowerCase().contains("windows") || section.toLowerCase().contains("bash")){
+        // Loop through the data for each image
+        for (String section : sections) {
+            if (section.equals("") || section.toLowerCase().contains("windows") || section.toLowerCase().contains("bash")) {
                 continue;
             }
 
             String[] lines = section.split("\n");
             String tmp = lines[0].substring(0, lines[0].length() - 1);
             String pathString = null;
-            try{
+            try {
                 pathString = new File(tmp).getCanonicalPath();
-            } catch (IOException e){
+            } catch (IOException e) {
                 System.out.println("ERROR: could not get canonical path for \"" + tmp + "\"");
             }
             ArrayList<String> tags = new ArrayList<>();
-            for(String line: lines){
-                if(!line.startsWith("(")){
+            for (String line : lines) {
+                if (!line.startsWith("(")) {
                     continue;
                 }
 
@@ -107,7 +124,7 @@ public class ImageTagger {
                 double prob = Double.parseDouble(splitLine[0]);
                 String tagName = splitLine[1];
 
-                if(prob >= tagProbThres) {
+                if (prob >= tagProbThres) {
                     tags.add(tagName);
                 }
             }
@@ -118,7 +135,15 @@ public class ImageTagger {
         return images;
     }
 
-    public static ArrayList<ImageWithTags> getTagsForImages(ArrayList<String> imagePaths, double tagProbThres){
+    /**
+     * Runs {@code parseDDOutput()} and {@code runDeepdanbooru()} together
+     *
+     * @param imagePaths   List of image paths to get tags for
+     * @param tagProbThres tagProbThres Tag probability threshold. Any tags with a confidence below this number will not be added to
+     *                     the tag list
+     * @return
+     */
+    public static ArrayList<ImageWithTags> getTagsForImages(ArrayList<String> imagePaths, double tagProbThres) {
         return parseDDOutput(runDeepdanbooru(imagePaths), tagProbThres);
     }
 

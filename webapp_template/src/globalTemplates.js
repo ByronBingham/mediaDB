@@ -1,7 +1,13 @@
+/**
+ * File to store templates used accross the web UI
+ */
+
 import { LitElement, html } from 'lit-element';
 import { getNswfCookie, setNswfCookie } from './util';
 
-
+/**
+ * Template search bar
+ */
 export class SearchBar extends LitElement {
     constructor(){
         super();
@@ -29,6 +35,9 @@ export class SearchBar extends LitElement {
     }
 }
 
+/**
+ * Template topbar. Includes a home button, search bar, and hidden nsfw toggle
+ */
 export class TopBar extends LitElement {
     constructor(){
         super();
@@ -73,6 +82,9 @@ export class TopBar extends LitElement {
 
 }
 
+/**
+ * Tempolate page number element. Clicking on this takes the user to the page specified in an instance of this element
+ */
 export class PageNumber extends LitElement {
     constructor(value, url, isCurrent){
         super();
@@ -93,6 +105,9 @@ export class PageNumber extends LitElement {
     }
 }
 
+/**
+ * Template page selector element. Contains multiple page numbers that can be selected, as well as page-forward/back arrows
+ */
 export class PageSelector extends LitElement {
     constructor(){
         super();
@@ -200,6 +215,7 @@ export class PageSelector extends LitElement {
 
 }
 
+// Register elements
 customElements.define('search-bar', SearchBar);
 customElements.define('top-bar', TopBar);
 customElements.define('page-number', PageNumber);
