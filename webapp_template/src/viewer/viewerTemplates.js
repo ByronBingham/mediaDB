@@ -41,12 +41,6 @@ export class ImageTagConrolBar extends LitElement {
         this.shadowRoot.getElementById("add-tag-button").style.display = "none";
         this.shadowRoot.getElementById("add-tag-form").style.display = "inline";
 
-        this.addEventListener("keyup", function(event) {
-            if (event.keyCode === 13) {
-                this.submitAddTagForm();
-            }
-        });
-
         this.requestUpdate();
     }
 
@@ -65,7 +59,7 @@ export class ImageTagConrolBar extends LitElement {
         this.shadowRoot.getElementById("nsfw-check").checked = false;
     }
 
-    submitAddTagForm(){
+    submitAddTagForm(event){
         let tagName = this.shadowRoot.getElementById("tag-name-txt").value;
         let nsfw = this.shadowRoot.getElementById("nsfw-check").checked;
         fetch(`http://${apiAddr}/images/add_tag?table_name=${dbTableName}&id=${this.id}&tag_name=${tagName}&nsfw=${nsfw}`).then((response) => {
@@ -77,6 +71,9 @@ export class ImageTagConrolBar extends LitElement {
         });
 
         this.clearAddTagForm();
+        // One or both of these prevents the form from refreshing the page...
+        event.preventDefault();
+        return false;
     }
 
     render(){
@@ -85,9 +82,12 @@ export class ImageTagConrolBar extends LitElement {
 
                         <div id="add-tag-form" style="display: none;">
                                 <button type="button" @click=${this.closeAddTagForm}>X</button>
-                                <input type="text" id="tag-name-txt">
-                                <input type="checkbox" id="nsfw-check">
-                                <button type="button" @click=${this.submitAddTagForm}>Submit</button>
+                                <form @submit="${this.submitAddTagForm}">
+                                    <input type="text" id="tag-name-txt">
+                                    <input type="checkbox" id="nsfw-check">
+                                    <input name="commit" type="submit" value="Submit">
+                                </form>
+                                
                         </div>
                         
                     </div>`;

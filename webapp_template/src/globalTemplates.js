@@ -13,7 +13,7 @@ export class SearchBar extends LitElement {
         super();
     }
 
-    goToResults(){
+    goToResults(event){
         console.log("stuff");
         let tags = this.shadowRoot.getElementById("tags-search").value.split(' ');
         let filteredTags = [];
@@ -25,12 +25,17 @@ export class SearchBar extends LitElement {
         let tagsString = filteredTags.join(',');
 
         window.location=`/${webapp_name}/resultsPage.html?search=` + tagsString;
+
+        // One or both of these prevents the form from refreshing the page...
+        event.preventDefault();
+        return false;
     }
 
     render(){
-        return html`<form">
+        return html`<form @submit="${this.goToResults}">
                         <input id="tags-search" name="tags" type="text" placeholder="Ex: blue_sky cloud 1girl">
-                        <input name="commit" type="submit" value="Search" @click=${this.goToResults}><br><br>
+                        <input name="commit" type="submit" value="Search">
+                        <br><br>
                     </form>`;
     }
 }
