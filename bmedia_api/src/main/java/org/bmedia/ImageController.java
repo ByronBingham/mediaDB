@@ -1,7 +1,6 @@
 package org.bmedia;
 
 import org.apache.commons.io.FilenameUtils;
-import org.imgscalr.Scalr;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -482,8 +481,15 @@ public class ImageController {
         String imgExt = FilenameUtils.getExtension(imagePath);
         try {
             BufferedImage img = ImageIO.read(new File(imagePath));
-            BufferedImage imgSmall = Scalr.resize(img, Scalr.Method.BALANCED, Scalr.Mode.FIT_TO_HEIGHT,
-                    thumbHeight, thumbHeight, Scalr.OP_ANTIALIAS);
+            BufferedImage imgSmall = null;
+
+            double w = img.getWidth();
+            double h = img.getHeight();
+            int targetWidth = (int) (w * (thumbHeight / h));
+            Image resultingImage = img.getScaledInstance(targetWidth, thumbHeight, Image.SCALE_AREA_AVERAGING | Image.SCALE_FAST);
+            BufferedImage outputImage = new BufferedImage(targetWidth, thumbHeight, BufferedImage.TYPE_INT_RGB);
+            outputImage.getGraphics().drawImage(resultingImage, 0, 0, null);
+            imgSmall = outputImage;
 
             // convert image to jpg compatible format if necessary
             if (imgExt.equals("png")) {
