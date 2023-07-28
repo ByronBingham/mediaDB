@@ -33,8 +33,6 @@ window.onDocLoad = function(){
  * @param {*} data 
  */
 const handleThumbResponse = function(id, data){
-    console.log(id);
-    console.log(data);
     let thumbUrl = URL.createObjectURL(data);
 
     resultPage.addResultElement(new ResultPageElement(id, thumbUrl));
