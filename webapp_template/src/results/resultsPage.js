@@ -32,11 +32,12 @@ window.onDocLoad = function(){
  * 
  * @param {*} data 
  */
-const handleThumbResponse = function(data){
-    let id = data["id"];
-    let b64Thumb = data["thumb_base64"];
+const handleThumbResponse = function(id, data){
+    console.log(id);
+    console.log(data);
+    let thumbUrl = URL.createObjectURL(data);
 
-    resultPage.addResultElement(new ResultPageElement(id, b64Thumb));
+    resultPage.addResultElement(new ResultPageElement(id, thumbUrl));
 }
 
 /**
@@ -53,13 +54,12 @@ const handleSearchResponse = function(data){
 
         fetch(`http://${apiAddr}/images/get_thumbnail?table_name=${dbTableName}&id=${id}&thumb_height=${thumbHeight}`).then((response) =>{
             if(response.ok){
-                return response.json();
+                response.blob().then(handleThumbResponse.bind(null, id));
             } else {
                 console.log("ERROR fetching thumbnail for image\n" +
-                "ID: " + id)
+                "ID: " + id);
             }
-        }
-        ).then(handleThumbResponse);
+        });
 
     });
 }
@@ -75,7 +75,6 @@ const sendSearchRequest = function(tagsString, pageNum){
     let nsfw = getNswfCookie()
     let requestString = `http://${apiAddr}/search_images/by_tag/page?table_name=${dbTableName}&tags=${tagsString}&page_num=${pageNum}&results_per_page=${default_images_per_page}` +
     `&include_thumb=false&include_nsfw=${nsfw}`;
-    console.log(requestString);
 
     // send request
     fetch(requestString).then((response) =>{

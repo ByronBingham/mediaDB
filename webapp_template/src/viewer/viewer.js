@@ -26,10 +26,9 @@ window.onDocLoad = function(){
  * 
  * @param {*} data 
  */
-const handleImageResponse = function(data){
-    let id = data["id"];
-    let imageData = data["image_base64"];
-    imageViewer = new ImageViewer(id, imageData);
+const handleImageResponse = function(id, data){
+    let imageUrl = URL.createObjectURL(data);
+    imageViewer = new ImageViewer(id, imageUrl);
 
     document.getElementById("image-viewer").appendChild(imageViewer);
 }
@@ -61,9 +60,9 @@ const sendImageRequest = function(id){
 
     // send request
     fetch(requestString).then((response) =>{
-        return response.json();
+        return response.blob().then(handleImageResponse.bind(null, id));
     }
-    ).then(handleImageResponse);  
+    );  
     
 }
 

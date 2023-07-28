@@ -9,10 +9,10 @@ import { LitElement, html } from 'lit-element';
  */
 export class ImageViewer extends LitElement {
 
-    constructor(id, imageData){
+    constructor(id, imageUrl){
         super();
         this.id = id;
-        this.imageData = imageData;
+        this.imageUrl = imageUrl;
     }
 
     viewImageFullScreen(){
@@ -21,7 +21,7 @@ export class ImageViewer extends LitElement {
 
     render(){
         return html`<div style="height: 100%; width: 100%;">
-                        <img style="object-fit: contain; height: 100%; width: 100%;" src="data:image/jpg;base64,${this.imageData}" alt="${this.filename}" @click=${this.viewImageFullScreen}/>
+                        <img style="object-fit: contain; height: 100%; width: 100%;" src="${this.imageUrl}" alt="${this.filename}" @click=${this.viewImageFullScreen}/>
                     </div>`
     }
 

@@ -9,10 +9,10 @@ import { LitElement, html } from 'lit-element';
  */
 export class ResultPageElement extends LitElement {
 
-    constructor(id, b64image){
+    constructor(id, imageUrl){
         super();
         this.id = id;
-        this.imageData = b64image;
+        this.imageUrl = imageUrl;
     }
 
     openImage(){
@@ -24,7 +24,7 @@ export class ResultPageElement extends LitElement {
         return html`
         <link rel="stylesheet" href="template.css">
         <div class="image_flex_item">
-            <img src="data:image/jpg;base64,${this.imageData}" alt="image" @click=${this.openImage}/>
+            <img src="${this.imageUrl}" alt="image" @click=${this.openImage}/>
         </div>`
     }
 
