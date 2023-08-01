@@ -58,7 +58,7 @@ The API uses one config file, and it must be initialized before running in Docke
 
 ### Web UI
 
-Before running Docker, you must build the webapps you want and place them in `tomcat/webapps`. This directory can be wherever, but the path must be relative to where the docker-compose file is run.
+Before running Docker, you must build the webapps you want and place them in `tomcat/webapps`. This directory can be wherever, but the path must be relative to where the docker-compose file is run. You must also create a keystore with a cert for tomcat and place the `.keystore` file in `./tomcat/conf/.keystore`. You can run `./tomcat/createSSLCert.[bat/sh]` to quickly create a cert. It would be better to set up a cert authority service, but that is not covered in this repo, at least not yet.
 
 #### Building a Webapp
 
