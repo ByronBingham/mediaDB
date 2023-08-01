@@ -54,7 +54,7 @@ Then, copy the dump file to `database/dump.tar` and un-comment the last two line
 
 ### API
 
-The API uses one config file, and it must be initialized before running in Docker. A template config file can be found in `database/db_config_Template.json`. Fill out this template, and rename it to `db_config.json`. Documentation of this config file can be found in `docs/db_config_schema.html`. This is the same `db_config.json` that the database uses to create its tables.
+The API uses one config file, and it must be initialized before running in Docker. A template config file can be found in `database/db_config_Template.json`. Fill out this template, and rename it to `db_config.json`. Documentation of this config file can be found in `docs/db_config_schema.html`. This is the same `db_config.json` that the database uses to create its tables. The API also uses a SSL cert; see the Web UI section below for instruction on making the cert.
 
 ### Web UI
 

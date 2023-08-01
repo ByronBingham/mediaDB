@@ -19,6 +19,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Optional;
@@ -299,6 +300,7 @@ public class ImageController {
     public @ResponseBody byte[] get_image_thumbnail(@RequestParam("table_name") String tbName,
                                                           @RequestParam("id") long id,
                                                           @RequestParam("thumb_height") Optional<Integer> thumbHeight) {
+
         int thumbHeightVal = thumbHeight.orElse(400);
         String schemaName = ApiSettings.getSchemaName();
         String tbNameFull = schemaName + "." + tbName;
@@ -318,6 +320,7 @@ public class ImageController {
             if (filePath == null) {
                 throw new ServerErrorException("IOError: this file is probably deleted from the filesystem");
             }
+
             thumbBytes = getThumbnailForImage(ApiSettings.getFullFilePath(filePath), thumbHeightVal, tbNameFull);
             if (thumbBytes == null) {
                 throw new ServerErrorException("Error: Could not create thumbnail for image");
@@ -327,6 +330,7 @@ public class ImageController {
             e.printStackTrace();
             throw new ServerErrorException("SQL error");
         }
+
 
         return thumbBytes;
     }
