@@ -26,10 +26,9 @@ window.onDocLoad = function(){
  * 
  * @param {*} data 
  */
-const handleImageResponse = function(data){
-    let id = data["id"];
-    let imageData = data["image_base64"];
-    imageViewer = new ImageViewer(id, imageData);
+const handleImageResponse = function(id, data){
+    let imageUrl = URL.createObjectURL(data);
+    imageViewer = new ImageViewer(id, imageUrl);
 
     document.getElementById("image-viewer").appendChild(imageViewer);
 }
@@ -56,14 +55,14 @@ const handleTagsResponse = function(data){
  */
 const sendImageRequest = function(id){    
     // query API
-    let requestString = `http://${apiAddr}/images/get_image_full?table_name=${dbTableName}&id=${id}`;
+    let requestString = `${apiAddr}/images/get_image_full?table_name=${dbTableName}&id=${id}`;
     //console.log("Request: " + requestString);
 
     // send request
     fetch(requestString).then((response) =>{
-        return response.json();
+        return response.blob().then(handleImageResponse.bind(null, id));
     }
-    ).then(handleImageResponse);  
+    );  
     
 }
 
@@ -74,7 +73,7 @@ const sendImageRequest = function(id){
  */
 const sendTagsRequest = function(id){
     // query API
-    let requestString = `http://${apiAddr}/images/get_tags?table_name=${dbTableName}&id=${id}`;
+    let requestString = `${apiAddr}/images/get_tags?table_name=${dbTableName}&id=${id}`;
     //console.log("Request: " + requestString);
 
     // send request

@@ -54,11 +54,11 @@ Then, copy the dump file to `database/dump.tar` and un-comment the last two line
 
 ### API
 
-The API uses one config file, and it must be initialized before running in Docker. A template config file can be found in `database/db_config_Template.json`. Fill out this template, and rename it to `db_config.json`. Documentation of this config file can be found in `docs/db_config_schema.html`. This is the same `db_config.json` that the database uses to create its tables.
+The API uses one config file, and it must be initialized before running in Docker. A template config file can be found in `database/db_config_Template.json`. Fill out this template, and rename it to `db_config.json`. Documentation of this config file can be found in `docs/db_config_schema.html`. This is the same `db_config.json` that the database uses to create its tables. The API also uses a SSL cert; see the Web UI section below for instruction on making the cert.
 
 ### Web UI
 
-Before running Docker, you must build the webapps you want and place them in `tomcat/webapps`. This directory can be wherever, but the path must be relative to where the docker-compose file is run.
+Before running Docker, you must build the webapps you want and place them in `tomcat/webapps`. This directory can be wherever, but the path must be relative to where the docker-compose file is run. You must also create a keystore with a cert for tomcat and place the `.keystore` file in `./tomcat/conf/.keystore`. You can run `./tomcat/createSSLCert.[bat/sh]` to quickly create a cert. It would be better to set up a cert authority service, but that is not covered in this repo, at least not yet.
 
 #### Building a Webapp
 

@@ -1,10 +1,11 @@
 package org.bmedia;
 
 import org.apache.commons.io.FilenameUtils;
-import org.imgscalr.Scalr;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ServerErrorException;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -18,6 +19,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Optional;
@@ -131,7 +133,7 @@ public class ImageController {
 
                 if (includeThumbVal) {
                     String imagePath = result.getString("file_path");
-                    String b64Thumb = getThumbnailForImage(imagePath, thumbHeightVal, tbNameFull);
+                    String b64Thumb = getThumbnailForImageB64(imagePath, thumbHeightVal, tbNameFull);
                     if (b64Thumb == null) {
                         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("FILE IO error");
                     }
@@ -245,8 +247,8 @@ public class ImageController {
      *                    *                    for the given height)
      * @return
      */
-    @RequestMapping(value = "/images/get_thumbnail", produces = "application/json")
-    public ResponseEntity<String> get_image_thumbnail(@RequestParam("table_name") String tbName,
+    @RequestMapping(value = "/images/get_thumbnail_b64", produces = "application/json")
+    public ResponseEntity<String> get_image_thumbnail_b64(@RequestParam("table_name") String tbName,
                                                       @RequestParam("id") long id,
                                                       @RequestParam("thumb_height") Optional<Integer> thumbHeight) {
         int thumbHeightVal = thumbHeight.orElse(400);
@@ -268,7 +270,7 @@ public class ImageController {
             if (filePath == null) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("IOError: this file is probably deleted from the filesystem");
             }
-            b64Thumb = getThumbnailForImage(ApiSettings.getFullFilePath(filePath), thumbHeightVal, tbNameFull);
+            b64Thumb = getThumbnailForImageB64(ApiSettings.getFullFilePath(filePath), thumbHeightVal, tbNameFull);
             if (b64Thumb == null) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error: no results returned from query");
             }
@@ -286,14 +288,62 @@ public class ImageController {
     }
 
     /**
+     * Gets a thumbnail for an image in the DB
+     *
+     * @param tbName      DB table name
+     * @param id          ID of image in the table
+     * @param thumbHeight Height (pixels) the thumbnail should be (width will be whatever is required to keep the aspect ratio
+     *                    *                    for the given height)
+     * @return
+     */
+    @RequestMapping(value = "/images/get_thumbnail", produces = MediaType.IMAGE_JPEG_VALUE)
+    public @ResponseBody byte[] get_image_thumbnail(@RequestParam("table_name") String tbName,
+                                                          @RequestParam("id") long id,
+                                                          @RequestParam("thumb_height") Optional<Integer> thumbHeight) {
+
+        int thumbHeightVal = thumbHeight.orElse(400);
+        String schemaName = ApiSettings.getSchemaName();
+        String tbNameFull = schemaName + "." + tbName;
+
+        String query = "SELECT file_path FROM " + tbNameFull + " WHERE id='" + id + "';";
+
+        byte[] thumbBytes = null;
+        try {
+            Statement statement = Main.getDbconn().createStatement();
+            ResultSet result = statement.executeQuery(query);
+
+            if (!result.next()) {
+                ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error: no results returned");
+            }
+
+            String filePath = result.getString("file_path");
+            if (filePath == null) {
+                throw new ServerErrorException("IOError: this file is probably deleted from the filesystem");
+            }
+
+            thumbBytes = getThumbnailForImage(ApiSettings.getFullFilePath(filePath), thumbHeightVal, tbNameFull);
+            if (thumbBytes == null) {
+                throw new ServerErrorException("Error: Could not create thumbnail for image");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new ServerErrorException("SQL error");
+        }
+
+
+        return thumbBytes;
+    }
+
+    /**
      * Gets a full image from the DB as a base64 encoded string
      *
      * @param tbName DB table name
      * @param id     ID of image in the table
      * @return
      */
-    @RequestMapping(value = "/images/get_image_full", produces = "application/json")
-    public ResponseEntity<String> get_image_full(@RequestParam("table_name") String tbName,
+    @RequestMapping(value = "/images/get_image_full_b64", produces = "application/json")
+    public ResponseEntity<String> get_image_full_b64(@RequestParam("table_name") String tbName,
                                                  @RequestParam("id") long id) {
         String schemaName = ApiSettings.getSchemaName();
         String tbNameFull = schemaName + "." + tbName;
@@ -328,6 +378,47 @@ public class ImageController {
                 "\n\"image_base64\": \"" + b64Image + "\"\n}";
 
         return ResponseEntity.status(HttpStatus.OK).body(jsonOut);
+    }
+
+    /**
+     * Gets a full image from the DB as a base64 encoded string
+     *
+     * @param tbName DB table name
+     * @param id     ID of image in the table
+     * @return
+     */
+    @RequestMapping(value = "/images/get_image_full", produces = MediaType.IMAGE_JPEG_VALUE)
+    public @ResponseBody byte[] get_image_full(@RequestParam("table_name") String tbName,
+                                                     @RequestParam("id") long id) {
+        String schemaName = ApiSettings.getSchemaName();
+        String tbNameFull = schemaName + "." + tbName;
+
+        String query = "SELECT file_path FROM " + tbNameFull + " WHERE id=" + id + ";";
+
+        byte[] imageBytes = null;
+        try {
+            Statement statement = Main.getDbconn().createStatement();
+            ResultSet result = statement.executeQuery(query);
+
+            if (!result.next()) {
+                ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error: no results returned");
+            }
+
+            String filePath = result.getString("file_path");
+            if (filePath == null) {
+                throw new ServerErrorException("IOError: this file is probably deleted from the filesystem");
+            }
+            imageBytes = getFullImage(ApiSettings.getFullFilePath(filePath), tbNameFull);
+            if (imageBytes == null) {
+                throw new ServerErrorException("SQL error: no results returned from query");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new ServerErrorException("SQL error");
+        }
+
+        return imageBytes;
     }
 
     /**
@@ -467,7 +558,7 @@ public class ImageController {
     }
 
     /**
-     * Create a thumbnail for an image
+     * Create a base64 encoded thumbnail for an image
      *
      * @param imagePath     Full path to an image
      * @param thumbHeight   Height (pixels) of thumbnail image (width will be whatever is required to keep the aspect ratio
@@ -476,14 +567,21 @@ public class ImageController {
      *                      broken and needs removed form the DB
      * @return
      */
-    private String getThumbnailForImage(String imagePath, int thumbHeight, String fullTableName) {
+    private String getThumbnailForImageB64(String imagePath, int thumbHeight, String fullTableName) {
 
         ByteArrayOutputStream boas = new ByteArrayOutputStream();
         String imgExt = FilenameUtils.getExtension(imagePath);
         try {
             BufferedImage img = ImageIO.read(new File(imagePath));
-            BufferedImage imgSmall = Scalr.resize(img, Scalr.Method.BALANCED, Scalr.Mode.FIT_TO_HEIGHT,
-                    thumbHeight, thumbHeight, Scalr.OP_ANTIALIAS);
+            BufferedImage imgSmall = null;
+
+            double w = img.getWidth();
+            double h = img.getHeight();
+            int targetWidth = (int) (w * (thumbHeight / h));
+            Image resultingImage = img.getScaledInstance(targetWidth, thumbHeight, Image.SCALE_AREA_AVERAGING | Image.SCALE_FAST);
+            BufferedImage outputImage = new BufferedImage(targetWidth, thumbHeight, BufferedImage.TYPE_INT_RGB);
+            outputImage.getGraphics().drawImage(resultingImage, 0, 0, null);
+            imgSmall = outputImage;
 
             // convert image to jpg compatible format if necessary
             if (imgExt.equals("png")) {
@@ -511,6 +609,59 @@ public class ImageController {
         }
         return Base64.getEncoder().encodeToString(boas.toByteArray());
 
+    }
+
+    /**
+     * Create a thumbnail for an image
+     *
+     * @param imagePath     Full path to an image
+     * @param thumbHeight   Height (pixels) of thumbnail image (width will be whatever is required to keep the aspect ratio
+     *                      for the given height)
+     * @param fullTableName Table name ([schema_name].[table_name]) of image. This is used in case the image's path is
+     *                      broken and needs removed form the DB
+     * @return Byte array of image
+     */
+    private byte[] getThumbnailForImage(String imagePath, int thumbHeight, String fullTableName) {
+
+        ByteArrayOutputStream boas = new ByteArrayOutputStream();
+        String imgExt = FilenameUtils.getExtension(imagePath);
+        try {
+            BufferedImage img = ImageIO.read(new File(imagePath));
+            BufferedImage imgSmall = null;
+
+            double w = img.getWidth();
+            double h = img.getHeight();
+            int targetWidth = (int) (w * (thumbHeight / h));
+            Image resultingImage = img.getScaledInstance(targetWidth, thumbHeight, Image.SCALE_AREA_AVERAGING | Image.SCALE_FAST);
+            BufferedImage outputImage = new BufferedImage(targetWidth, thumbHeight, BufferedImage.TYPE_INT_RGB);
+            outputImage.getGraphics().drawImage(resultingImage, 0, 0, null);
+            imgSmall = outputImage;
+
+            // convert image to jpg compatible format if necessary
+            if (imgExt.equals("png")) {
+                BufferedImage newBufferedImage = new BufferedImage(imgSmall.getWidth(), imgSmall.getHeight(),
+                        BufferedImage.TYPE_INT_RGB);
+                newBufferedImage.createGraphics().drawImage(imgSmall, 0, 0, Color.WHITE, null);
+                imgSmall = newBufferedImage;
+            }
+            if (!ImageIO.write(imgSmall, "jpg", boas)) {
+                System.out.println("ERROR: Failed to write image to buffer for b64 encoding.");
+                return null;
+            }
+        } catch (IOException e) {
+            System.out.println("ERROR: IO error while trying to encode image" + imagePath + ". \n" + e.getMessage());
+            if (!Files.exists(Path.of(imagePath))) {
+                // keep DB entry but set path to null
+                String relPath = ApiSettings.getPathRelativeToShare(imagePath);
+                try {
+                    Main.removeBrokenPathInDB(relPath, fullTableName);
+                } catch (SQLException sqlException) {
+                    System.out.println("WARNING: Could not delete path from DB: \"" + relPath + "\"");
+                }
+            }
+            return null;
+        }
+        return boas.toByteArray();
     }
 
     /**
@@ -544,5 +695,38 @@ public class ImageController {
             return null;
         }
         return Base64.getEncoder().encodeToString(boas.toByteArray());
+    }
+
+    /**
+     * Gets a byte array representation of an image
+     *
+     * @param imagePath     Full path to an image
+     * @param fullTableName Table name ([schema_name].[table_name]) of image. This is used in case the image's path is
+     *                      broken and needs removed form the DB
+     * @return
+     */
+    private byte[] getFullImage(String imagePath, String fullTableName) {
+        ByteArrayOutputStream boas = new ByteArrayOutputStream();
+        try {
+            BufferedImage img = ImageIO.read(new File(imagePath));
+            String extension = FilenameUtils.getExtension(imagePath);
+            if (!ImageIO.write(img, extension, boas)) {
+                System.out.println("ERROR: Failed to write image to buffer for b64 encoding.");
+                return null;
+            }
+        } catch (IOException e) {
+            System.out.println("ERROR: IO error while trying to encode image " + imagePath + ". \n" + e.getMessage());
+            if (!Files.exists(Path.of(imagePath))) {
+                // keep DB entry but set path to null
+                String relPath = ApiSettings.getPathRelativeToShare(imagePath);
+                try {
+                    Main.removeBrokenPathInDB(relPath, fullTableName);
+                } catch (SQLException sqlException) {
+                    System.out.println("WARNING: Could not delete path from DB: \"" + relPath + "\"");
+                }
+            }
+            return null;
+        }
+        return boas.toByteArray();
     }
 }

@@ -60,7 +60,7 @@ export class TagConrolBar extends LitElement {
     submitAddTagForm(event){
         let tagName = this.shadowRoot.getElementById("tag-name-txt").value;
         let nsfw = this.shadowRoot.getElementById("nsfw-check").checked;
-        fetch(`http://${apiAddr}/tags/add_tag?tag_name=${tagName}&nsfw=${nsfw}`);
+        fetch(`${apiAddr}/tags/add_tag?tag_name=${tagName}&nsfw=${nsfw}`);
 
         this.closeAddTagForm();
         this.tagList.addTag(tagName, nsfw);
@@ -94,7 +94,7 @@ export class TagList extends LitElement {
     constructor(){
         super();
         this.tagElements = [];
-        fetch(`http://${apiAddr}/tags/get_all_tags`).then((response) =>{
+        fetch(`${apiAddr}/tags/get_all_tags`).then((response) =>{
             if(response.ok){
                 return response.text();
         } else {
@@ -154,7 +154,7 @@ export class TagElement extends LitElement {
     updateTag(){
         let nsfwVal = this.shadowRoot.getElementById("nsfw-check").checked;
 
-        fetch(`http://${apiAddr}/tags/update_tag?tag_name=${this.name}&nsfw=${nsfwVal}`);
+        fetch(`${apiAddr}/tags/update_tag?tag_name=${this.name}&nsfw=${nsfwVal}`);
     }
 
     render(){
