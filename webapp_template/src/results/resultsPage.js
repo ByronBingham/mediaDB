@@ -48,9 +48,9 @@ const handleSearchResponse = function(data){
 
     data.forEach((obj) => {
         let id = obj["id"];
-        let thumbHeight = 200;
+        let thumbHeight = thumb_height;
 
-        fetch(`http://${apiAddr}/images/get_thumbnail?table_name=${dbTableName}&id=${id}&thumb_height=${thumbHeight}`).then((response) =>{
+        fetch(`${apiAddr}/images/get_thumbnail?table_name=${dbTableName}&id=${id}&thumb_height=${thumbHeight}`).then((response) =>{
             if(response.ok){
                 response.blob().then(handleThumbResponse.bind(null, id));
             } else {
@@ -71,7 +71,7 @@ const handleSearchResponse = function(data){
 const sendSearchRequest = function(tagsString, pageNum){
     // query API
     let nsfw = getNswfCookie()
-    let requestString = `http://${apiAddr}/search_images/by_tag/page?table_name=${dbTableName}&tags=${tagsString}&page_num=${pageNum}&results_per_page=${default_images_per_page}` +
+    let requestString = `${apiAddr}/search_images/by_tag/page?table_name=${dbTableName}&tags=${tagsString}&page_num=${pageNum}&results_per_page=${default_images_per_page}` +
     `&include_thumb=false&include_nsfw=${nsfw}`;
 
     // send request

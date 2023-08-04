@@ -62,7 +62,7 @@ export class ImageTagConrolBar extends LitElement {
     submitAddTagForm(event){
         let tagName = this.shadowRoot.getElementById("tag-name-txt").value;
         let nsfw = this.shadowRoot.getElementById("nsfw-check").checked;
-        fetch(`http://${apiAddr}/images/add_tag?table_name=${dbTableName}&id=${this.id}&tag_name=${tagName}&nsfw=${nsfw}`).then((response) => {
+        fetch(`${apiAddr}/images/add_tag?table_name=${dbTableName}&id=${this.id}&tag_name=${tagName}&nsfw=${nsfw}`).then((response) => {
             if(response.ok){
                 this.imageTagList.addTagElement({"tag_name": tagName, "nsfw": nsfw});
             } else {
@@ -224,7 +224,7 @@ export class EditTagElement extends LitElement {
     }
 
     deleteTag(){
-        fetch(`http://${apiAddr}/images/delete_tag?table_name=${dbTableName}&id=${this.id}&tag_name=${this.name}`).then((response) => {
+        fetch(`${apiAddr}/images/delete_tag?table_name=${dbTableName}&id=${this.id}&tag_name=${this.name}`).then((response) => {
             if(response.ok){
                 this.imageTagList.removeTag(this.name);
             } else {
