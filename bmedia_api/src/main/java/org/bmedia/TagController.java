@@ -91,7 +91,7 @@ public class TagController {
     }
 
     /**
-     * Update a tag
+     * Update a tag's nsfw value
      *
      * @param tagName Tag to update
      * @param nsfw    Update the tag's NSFW status to this input

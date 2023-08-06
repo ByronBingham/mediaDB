@@ -19,10 +19,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.List;
 
 /**
  * API controller for image-related requests
@@ -513,6 +513,75 @@ public class ImageController {
             statement2.setLong(1, id);
             statement2.setString(2, tagName);
             statement2.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("SQL error");
+        }
+
+        return ResponseEntity.status(HttpStatus.OK).body("Successfully added tag");
+    }
+
+    /**
+     * Adds a tag to an image in the DB
+     *
+     * @param tbName        DB table name
+     * @param ids            ID's of images in the table
+     * @param tagNames       Names of tags to add (does not have to already be in the DB)
+     * @param overwriteNsfw Overwrite the NSFW setting for an existing tag
+     * @return
+     */
+    @RequestMapping(value = "/images/add_tags", produces = "application/json")
+    public ResponseEntity<String> add_tag_to_image(@RequestParam("table_name") String tbName,
+                                                   @RequestParam("id") List<Long> ids,
+                                                   @RequestParam("tag_names") List<String> tagNames,
+                                                   @RequestParam("overwrite_nsfw") Optional<Boolean> overwriteNsfw) {
+        if (tagNames.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Cannot have empty tag list in request");
+        }
+        boolean overwriteNsfwVal = overwriteNsfw.orElse(false);
+
+        for(String tagName: tagNames) {
+            if(tagName.contains("'")){
+                String newTag = tagName.replace("'", "''");
+                tagNames.remove(tagName);
+                tagNames.add(newTag);
+            }
+        }
+        String schemaName = ApiSettings.getSchemaName();
+        String tagJoinTableName = tbName + "_tags_join";
+
+        String query1 = "INSERT INTO " + schemaName + ".tags (tag_name, nsfw) VALUES (?, ?) ON CONFLICT (tag_name) DO";
+        if (overwriteNsfwVal) {
+            query1 += " UPDATE SET nsfw = " +
+                    "EXCLUDED.nsfw;";
+        } else {
+            query1 += " NOTHING;";
+        }
+
+        String query2 = "INSERT INTO " + schemaName + "." + tagJoinTableName + " (id, tag_name) VALUES (?, ?)" +
+                " ON CONFLICT DO NOTHING;";
+
+        try(PreparedStatement statement2 = Main.getDbconn().prepareStatement(query2);
+            PreparedStatement statement1 = Main.getDbconn().prepareStatement(query1)) {
+
+            for(String tagName: tagNames) {
+                for(Long id: ids) {
+                    // add tag if not already in tag table
+                    statement1.setString(1, tagName);
+                    statement1.setBoolean(2, false);
+                    statement1.addBatch();
+
+                    // add entry into join table
+                    statement2.setLong(1, id);
+                    statement2.setString(2, tagName);
+                    statement2.addBatch();
+                }
+            }
+
+            // Run batch query
+            statement1.executeBatch();
+            statement2.executeBatch();
 
         } catch (SQLException e) {
             e.printStackTrace();
