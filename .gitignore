@@ -50,3 +50,6 @@ test_data/memes/*
 
 # webpack build files
 *dist/
+
+# deployment files
+./compose.yml
