@@ -10,7 +10,18 @@ var resultPage = undefined;
 /**
  * Get results for the page from the API when the page loads
  */
-window.onDocLoad = function(){
+window.onload = function(){
+    resultPage = new ResultsPage();
+    document.getElementById("results-div").appendChild(resultPage);
+    doSearch(0);
+}
+
+/**
+ * Loads a page of results
+ * 
+ * @param {*} pageOffset This can be used to load subsequent pages of results while doomscrolling
+ */
+export const doSearch = function(pageOffset){
     let params = (new URL(document.location)).searchParams;
     let searchString = params.get("search");
     let currentPageNum = params.get("page");
@@ -19,11 +30,10 @@ window.onDocLoad = function(){
     } else {
         currentPageNum = parseInt(currentPageNum);
     }
-    resultPage = new ResultsPage();
     if(searchString){
-        sendSearchRequest(searchString, currentPageNum);
+        sendSearchRequest(searchString, currentPageNum + pageOffset);
     } else {
-        sendSearchRequest("", currentPageNum);
+        sendSearchRequest("", currentPageNum + pageOffset);
     }
 }
 
@@ -35,7 +45,7 @@ window.onDocLoad = function(){
 const handleThumbResponse = function(id, data){
     let thumbUrl = URL.createObjectURL(data);
 
-    resultPage.addResultElement(new ResultPageElement(id, thumbUrl));
+    resultPage.addResultElement(new ResultPageElement(id, thumbUrl, resultPage));
 }
 
 /**
@@ -44,7 +54,6 @@ const handleThumbResponse = function(id, data){
  * @param {*} data 
  */
 const handleSearchResponse = function(data){
-    document.getElementById("results-div").appendChild(resultPage);
 
     data.forEach((obj) => {
         let id = obj["id"];

@@ -27,6 +27,30 @@ export function setNswfCookie(bool){
 }
 
 /**
+ * Gets the doomScroll cookie
+ * @returns true/false
+ */
+export function getDoomScrollCookie(){
+  let val = getCookie("doomScroll");
+  if(val === ""){
+      document.cookie = "doomScroll=false;";
+      return false;
+  }
+  if(val === 'true'){
+      return true;
+  } else {
+      return false;
+  }
+}
+
+/**
+* Sets the doomScroll cookie
+*/
+export function setDoomScrollCookie(bool){
+  document.cookie = "doomScroll=" + bool.toString() + ";";
+}
+
+/**
  * Gets a specific browser cookie for this site
  * 
  * @param {*} cname Cookie name

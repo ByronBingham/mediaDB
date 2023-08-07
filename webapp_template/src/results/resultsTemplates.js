@@ -3,22 +3,25 @@
  */
 
 import { LitElement, html } from 'lit-element';
+import { getDoomScrollCookie, setDoomScrollCookie } from '../util';
+import { doSearch } from './resultsPage.js';
 
 /**
  * Template for an individual page result
  */
 export class ResultPageElement extends LitElement {
 
-    constructor(id, imageUrl){
+    constructor(id, imageUrl, resultPage){
         super();
         this.id = id;
         this.imageUrl = imageUrl;
-        this.editting = true;
+        this.editting = resultPage.getEditing();
         this.selected = false;
+
+        resultPage.decrementLoading();
     }
 
     openImage(){
-        console.log("Opening Image with id=" + this.id);
         window.location = `/${webapp_name}/imagePage.html?id=${this.id}`;
     }
 
@@ -75,11 +78,28 @@ export class ResultsPage extends LitElement {
         super();
         this.resultElements = [];
         this.editing = false;
+        this.pageOffset = 1;
+        this.loadingElement = default_images_per_page;
+        this.doomScrollButtonText = (getDoomScrollCookie())?"Mode: Doomscroll":"Mode: Page";
+    }
+
+    decrementLoading(){
+        this.loadingElement -= 1;
+        if(this.loadingElement < 0){
+            this.loadingElement = 0;
+        }
+        if(!this.loadingElement){
+            this.doScroll();
+        }
     }
 
     addResultElement(resEl){
         this.resultElements.push(resEl);
         this.requestUpdate();
+    }
+
+    getEditing(){
+        return this.editing;
     }
 
     toggleEditing(){
@@ -127,6 +147,29 @@ export class ResultsPage extends LitElement {
         return false;
     }
 
+    toggleDoomScroll(){
+        setDoomScrollCookie(!getDoomScrollCookie());
+        this.doomScrollButtonText = (getDoomScrollCookie())?"Mode: Doomscroll":"Mode: Page";
+        this.doScroll();
+        this.requestUpdate();
+    }
+
+    doScroll(){
+        // Only handle scrolling if doomscrolling
+        if(getDoomScrollCookie() && !this.loadingElement){
+            let scrollPosition = this.shadowRoot.getElementById("result-list").scrollTop;
+            let scrollHeight = this.shadowRoot.getElementById("result-list").scrollHeight;
+
+            // If close enough to bottom, load more images
+            // TODO: make the threshold number below a variable
+            if(scrollPosition > scrollHeight - this.shadowRoot.getElementById("result-list").offsetHeight - 500 && !this.loadingElement){
+                this.loadingElement += default_images_per_page;
+                doSearch(this.pageOffset);
+                this.pageOffset += 1;
+            }
+        }
+    }
+
     render(){
         if(this.editing){
             return html`
@@ -137,8 +180,9 @@ export class ResultsPage extends LitElement {
                     <input type="text" id="tag-list">
                     <input name="commit" type="submit" value="Submit">
                 </form>
+                <button @click=${this.toggleDoomScroll} style="align: right;">${this.doomScrollButtonText}</button>
             </div>
-            <div class="image_flex">
+            <div class="image_flex" id="result-list" @scroll=${this.doScroll}>
                 ${this.resultElements}
             </div>`
         } else {
@@ -146,8 +190,9 @@ export class ResultsPage extends LitElement {
             <link rel="stylesheet" href="template.css">
             <div class="results-edit-toggle">
                 <button @click=${this.toggleEditing}>Edit Tags</button>
+                <button @click=${this.toggleDoomScroll}>${this.doomScrollButtonText}</button>
             </div>
-            <div class="image_flex">
+            <div class="image_flex" id="result-list" @scroll=${this.doScroll}>
                 ${this.resultElements}
             </div>`
         }
