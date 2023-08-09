@@ -21,30 +21,50 @@ export class ResultPageElement extends LitElement {
         resultPage.decrementLoading();
     }
 
+    /**
+     * Open image veiwer for this image
+     */
     openImage(){
         window.location = `/${webapp_name}/imagePage.html?id=${this.id}`;
     }
 
+    /**
+     * Show edting elements
+     */
     editImage(){
         this.editting = true;
         this.selected = false;
         this.requestUpdate();
     }
 
+    /**
+     * Hide and reset edting elements
+     */
     stopEdittingImage(){
         this.editting = false;
         this.selected = false;
         this.requestUpdate();
     }
 
+    /**
+     * Get whether this image is selected for mass tag edting
+     */
     getSelected(){
         return this.selected;
     }
 
+    /**
+     * Update whether this image is selected for mass tag edting
+     */
     setSelected(){
         this.selected = this.shadowRoot.getElementById("selected-checkbox").checked;
     }
 
+    /**
+     * Get the ID of this result element
+     * 
+     * @returns ID
+     */
     getId(){
         return this.id;
     }
@@ -74,6 +94,7 @@ export class ResultPageElement extends LitElement {
  * Template for the results page
  */
 export class ResultsPage extends LitElement {
+    
     constructor(){
         super();
         this.resultElements = [];
@@ -83,6 +104,9 @@ export class ResultsPage extends LitElement {
         this.doomScrollButtonText = (getDoomScrollCookie())?"Mode: Doomscroll":"Mode: Page";
     }
 
+    /**
+     * Decrement the hold/lock variable for auto-loading image results
+     */
     decrementLoading(){
         this.loadingElement -= 1;
         if(this.loadingElement < 0){
@@ -93,15 +117,28 @@ export class ResultsPage extends LitElement {
         }
     }
 
+    /**
+     * Adds a result element to the results page list
+     * 
+     * @param {*} resEl Result element to add
+     */
     addResultElement(resEl){
         this.resultElements.push(resEl);
         this.requestUpdate();
     }
 
+    /**
+     * Returns the edting state
+     * 
+     * @returns True if edting
+     */
     getEditing(){
         return this.editing;
     }
 
+    /**
+     * Toggle tag mass editing
+     */
     toggleEditing(){
         this.editing = !this.editing;
         this.resultElements.forEach(element => {
@@ -114,6 +151,12 @@ export class ResultsPage extends LitElement {
         this.requestUpdate();
     }
 
+    /**
+     * Submit mass tags to the API
+     * 
+     * @param {*} event Submit event from tags form
+     * @returns 
+     */
     submitTags(event){
         // Get selected ids
         let ids = [];
@@ -147,6 +190,9 @@ export class ResultsPage extends LitElement {
         return false;
     }
 
+    /**
+     * Toggle doomscroll
+     */
     toggleDoomScroll(){
         setDoomScrollCookie(!getDoomScrollCookie());
         this.doomScrollButtonText = (getDoomScrollCookie())?"Mode: Doomscroll":"Mode: Page";
@@ -154,6 +200,9 @@ export class ResultsPage extends LitElement {
         this.requestUpdate();
     }
 
+    /**
+     * Handle auto-loading for doomscrolling based on the user's scroll position
+     */
     doScroll(){
         // Only handle scrolling if doomscrolling
         if(getDoomScrollCookie() && !this.loadingElement){

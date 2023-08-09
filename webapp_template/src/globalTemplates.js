@@ -149,6 +149,11 @@ export class PageSelector extends LitElement {
         ).then(this.pageNumCallback.bind(this));
     }
 
+    /**
+     * Create page number selector
+     * 
+     * @param {*} data 
+     */
     pageNumCallback(data) {
         let lastPageNum = data["pages"] - 1;
 
