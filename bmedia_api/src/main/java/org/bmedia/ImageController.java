@@ -54,11 +54,17 @@ public class ImageController {
                                                             @RequestParam("results_per_page") int resultsPerPage,
                                                             @RequestParam("include_thumb") Optional<Boolean> includeThumb,
                                                             @RequestParam("thumb_height") Optional<Integer> thumbHeight,
-                                                            @RequestParam("include_nsfw") Optional<Boolean> includeNsfw) {
+                                                            @RequestParam("include_nsfw") Optional<Boolean> includeNsfw,
+                                                            @RequestParam("min_height") Optional<Integer> minHeight,
+                                                            @RequestParam("min_width") Optional<Integer> minWidth,
+                                                            @RequestParam("aspect_ratio") Optional<Double> aspectRatio,
+                                                            @RequestParam("asc_desc") Optional<Boolean> ascDesc,
+                                                            @RequestParam("sort_by") Optional<String> sortBy) {
 
         boolean includeThumbVal = includeThumb.orElse(false);
         int thumbHeightVal = thumbHeight.orElse(400);
         boolean includeNsfwVal = includeNsfw.orElse(false);
+        boolean ascending = ascDesc.orElse(false);
         String schemaName = ApiSettings.getSchemaName();
         String tbNameFull = schemaName + "." + tbName;
         String tagJoinTableName = schemaName + "." + tbName + "_tags_join";
@@ -84,30 +90,67 @@ public class ImageController {
             nsfwString2 += "MAX(CASE t.nsfw WHEN TRUE THEN 1 ELSE 0 END) = 0";
         }
 
-        String query = "";
+        // Start of main query
+        String query =  "SELECT a.id,a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
+                " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.id) = (at.id) " +
+                nsfwJoinString;
+
+        // Query with no specified tags
         if (numTags == 0) {
             if (!includeNsfwVal) {
-                nsfwString1 = "WHERE " + nsfwString1;
                 nsfwString2 = "HAVING " + nsfwString2;
             }
-            query = "SELECT a.id,a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
-                    " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.id) = (at.id) " +
-                    nsfwJoinString + " WHERE NOT a.file_path IS NULL " +
-                    "GROUP BY (a.id)" + nsfwString2 + " ORDER BY a.id DESC" +
-                    " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage + ";";
+             query += " WHERE NOT a.file_path IS NULL " +
+                    "GROUP BY (a.id)" + nsfwString2 + " ORDER BY a.id ";
         } else {
-            // for reference: https://elliotchance.medium.com/handling-tags-in-a-sql-database-5597b9894049
             if (!includeNsfwVal) {
                 nsfwString1 = "OR  " + nsfwString1;
                 nsfwString2 = " AND " + nsfwString2;
             }
-            query = "SELECT a.id,a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
-                    " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.id) = (at.id) " +
-                    nsfwJoinString +
-                    "WHERE NOT a.file_path IS NULL AND at.tag_name IN (" + tag_string + ") " + nsfwString1 +
-                    "GROUP BY (a.id) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2 + " ORDER BY a.id DESC" +
-                    " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage + ";";
+            query += "WHERE NOT a.file_path IS NULL AND at.tag_name IN (" + tag_string + ") " + nsfwString1 +
+                    "GROUP BY (a.id) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2 + " ORDER BY a.id ";
+
         }
+
+        // Secondary query if applicable
+        String secondaryQuery = null;
+        String sortBySql = null;
+        boolean hExists = minHeight.isPresent();
+        boolean wExists = minWidth.isPresent();
+        boolean arExists = aspectRatio.isPresent();
+        if(hExists || wExists || arExists){
+            sortBySql = "TODO";
+            secondaryQuery = "SELECT * FROM " + tbNameFull + " WHERE ";
+            if(hExists){
+                secondaryQuery += "resolution_height >= " + minHeight.get() + " ";
+                if(wExists){
+                    secondaryQuery += "AND ";
+                }
+            }
+            if (wExists){
+                secondaryQuery += "resolution_width >= " + minWidth.get() + " ";
+                if(arExists){
+                    secondaryQuery += "AND ";
+                }
+            }
+            if (arExists){
+                String sign = "=";
+                if(aspectRatio.get() > 1.0){
+                    sign = ">=";
+                } else if(aspectRatio.get() < 1.0){
+                    sign = "<=";
+                }
+                secondaryQuery += "resolution_width / resolution_height" + sign + " " + aspectRatio.get() + " ";
+            }
+            secondaryQuery += "IN (";
+        }
+
+        query = secondaryQuery + query + ")";
+
+        // End of main query
+        query += (secondaryQuery != null)? ((sortBy.isPresent())? sortBySql : "ORDER BY resolution_width * resolutionHeight") : "";
+        query += (ascending)? "ASC" : "DESC";
+        query += " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage + ";";
 
         String jsonOut = "[";
         try {
