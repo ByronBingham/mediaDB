@@ -81,17 +81,79 @@ public class ImageController {
             includePatString = ",a.file_path";
         }
 
+        // Secondary query if applicable
+        String secondaryQueryStart = "";
+        String secondaryQueryEnd = "";
+        String sortBySql = "ORDER BY ";
+        boolean hExists = minHeight.isPresent();
+        boolean wExists = minWidth.isPresent();
+        boolean arExists = aspectRatio.isPresent();
+        boolean doSubQuery = hExists || wExists || arExists;
+        String noSubQueryString = (doSubQuery)?"":"a.";
+        String ascDescString = (ascending)?"ASC ":"DESC ";
+        boolean doExtraSort = sortBy.isPresent();
+        switch ((sortBy.isPresent())?sortBy.get().toLowerCase():""){
+            case "height":
+                sortBySql += noSubQueryString + "resolution_height " + ascDescString;
+                break;
+            case "width":
+                sortBySql += noSubQueryString + "resolution_width " + ascDescString;
+                break;
+            case "file_size":
+                sortBySql += noSubQueryString + "file_size_bytes " + ascDescString;
+                break;
+            case "aspect_ratio":
+                sortBySql += noSubQueryString + "resolution_width * " + noSubQueryString + "resolution_height " + ascDescString;
+                break;
+        }
+        sortBySql += ((doExtraSort)?",":"")+ " " + noSubQueryString + "id";
+
+        if(doSubQuery){
+            List<String> subquerySelectionsList = new ArrayList<>();
+            secondaryQueryStart = "SELECT * FROM (";
+            secondaryQueryEnd = ") AS s1 WHERE ";
+            if(hExists){
+                subquerySelectionsList.add("a.resolution_height");
+                secondaryQueryEnd += "resolution_height >= " + minHeight.get() + " ";
+                if(wExists){
+                    secondaryQueryEnd += "AND ";
+                }
+            }
+            if (wExists){
+                subquerySelectionsList.add("a.resolution_width");
+                secondaryQueryEnd += "resolution_width >= " + minWidth.get() + " ";
+                if(arExists){
+                    secondaryQueryEnd += "AND ";
+                }
+            }
+            if (arExists){
+                if(!subquerySelectionsList.contains("a.resolution_height")){
+                    subquerySelectionsList.add("a.resolution_height");
+                }
+                if(!subquerySelectionsList.contains("a.resolution_width")){
+                    subquerySelectionsList.add("a.resolution_width");
+                }
+                String sign = "=";
+                if(aspectRatio.get() > 1.0){
+                    sign = ">=";
+                } else if(aspectRatio.get() < 1.0){
+                    sign = "<=";
+                }
+                secondaryQueryEnd += "resolution_width / resolution_height" + sign + " " + aspectRatio.get() + " ";
+            }
+        }
+
         String nsfwString1 = "";
         String nsfwString2 = "";
         String nsfwJoinString = "";
         if (!includeNsfwVal) {
             nsfwJoinString += "JOIN " + tagTableName + " t ON at.tag_name = t.tag_name ";
             nsfwString1 += "t.nsfw = TRUE ";
-            nsfwString2 += "MAX(CASE t.nsfw WHEN TRUE THEN 1 ELSE 0 END) = 0";
+            nsfwString2 += "MAX(CASE t.nsfw WHEN TRUE THEN 1 ELSE 0 END) = 0 ";
         }
 
         // Start of main query
-        String query =  "SELECT a.id,a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes" + includePatString +
+        String mainQuery =  "SELECT a.id,a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes " + includePatString +
                 " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.id) = (at.id) " +
                 nsfwJoinString;
 
@@ -100,62 +162,26 @@ public class ImageController {
             if (!includeNsfwVal) {
                 nsfwString2 = "HAVING " + nsfwString2;
             }
-             query += " WHERE NOT a.file_path IS NULL " +
-                    "GROUP BY (a.id)" + nsfwString2 + " ORDER BY a.id ";
+            mainQuery += " WHERE NOT a.file_path IS NULL " +
+                    "GROUP BY (a.id)" + nsfwString2 ;
         } else {
             if (!includeNsfwVal) {
                 nsfwString1 = "OR  " + nsfwString1;
                 nsfwString2 = " AND " + nsfwString2;
             }
-            query += "WHERE NOT a.file_path IS NULL AND at.tag_name IN (" + tag_string + ") " + nsfwString1 +
-                    "GROUP BY (a.id) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2 + " ORDER BY a.id ";
-
+            mainQuery += "WHERE NOT a.file_path IS NULL AND at.tag_name IN (" + tag_string + ") " + nsfwString1 +
+                    "GROUP BY (a.id) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2;
         }
 
-        // Secondary query if applicable
-        String secondaryQuery = null;
-        String sortBySql = null;
-        boolean hExists = minHeight.isPresent();
-        boolean wExists = minWidth.isPresent();
-        boolean arExists = aspectRatio.isPresent();
-        if(hExists || wExists || arExists){
-            sortBySql = "TODO";
-            secondaryQuery = "SELECT * FROM " + tbNameFull + " WHERE ";
-            if(hExists){
-                secondaryQuery += "resolution_height >= " + minHeight.get() + " ";
-                if(wExists){
-                    secondaryQuery += "AND ";
-                }
-            }
-            if (wExists){
-                secondaryQuery += "resolution_width >= " + minWidth.get() + " ";
-                if(arExists){
-                    secondaryQuery += "AND ";
-                }
-            }
-            if (arExists){
-                String sign = "=";
-                if(aspectRatio.get() > 1.0){
-                    sign = ">=";
-                } else if(aspectRatio.get() < 1.0){
-                    sign = "<=";
-                }
-                secondaryQuery += "resolution_width / resolution_height" + sign + " " + aspectRatio.get() + " ";
-            }
-            secondaryQuery += "IN (";
-        }
-
-        query = secondaryQuery + query + ")";
+        String fullQuery = secondaryQueryStart + " " + mainQuery + " " +secondaryQueryEnd;
 
         // End of main query
-        query += (secondaryQuery != null)? ((sortBy.isPresent())? sortBySql : "ORDER BY resolution_width * resolutionHeight") : "";
-        query += (ascending)? "ASC" : "DESC";
-        query += " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage + ";";
+        fullQuery += sortBySql;
+        fullQuery += " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage + ";";
 
         String jsonOut = "[";
-        try {
-            Statement statement = Main.getDbconn().createStatement();
-            ResultSet result = statement.executeQuery(query);
+        try(Statement statement = Main.getDbconn().createStatement()) {
+            ResultSet result = statement.executeQuery(fullQuery);
 
             ArrayList<String> jsonEntries = new ArrayList<>();
             while (result.next()) {
