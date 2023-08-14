@@ -197,7 +197,7 @@ export class ImageTag extends LitElement {
     }
 
     searchTag(){
-        window.location=`/${webapp_name}/resultsPage.html?search=${this.name}`;
+        window.location=`/${webapp_name}/resultsPage.html?tags=${this.name}`;
     }
 
     render(){

@@ -3,7 +3,7 @@
  */
 
 import { LitElement, html } from 'lit-element';
-import { getDoomScrollCookie, setDoomScrollCookie } from '../util';
+import { getAscDescCookie, getDoomScrollCookie, setAscDescCookie, setDoomScrollCookie, getTagsQueryString, getUrlParam } from '../util';
 import { doSearch } from './resultsPage.js';
 
 /**
@@ -102,6 +102,19 @@ export class ResultsPage extends LitElement {
         this.pageOffset = 1;
         this.loadingElement = default_images_per_page;
         this.doomScrollButtonText = (getDoomScrollCookie())?"Mode: Doomscroll":"Mode: Page";
+        this.ascDescButtonText = (getAscDescCookie())?"Sort Asc":"Sort Desc";
+        this.widthValue = "";
+        if(getUrlParam("min_width") !== undefined){
+            this.widthValue = getUrlParam("min_width");
+        }
+        this.heightValue = "";
+        if(getUrlParam("min_height") !== undefined){
+            this.heightValue = getUrlParam("min_height");
+        }
+        this.arValue = false;
+        if(getUrlParam("aspect_ratio") !== undefined && getUrlParam("aspect_ratio") !== null){
+            this.arValue = true;
+        }
     }
 
     /**
@@ -201,6 +214,15 @@ export class ResultsPage extends LitElement {
     }
 
     /**
+     * Toggle asc/desc
+     */
+    toggleAscDesc(){
+        setAscDescCookie(!getAscDescCookie());
+        this.ascDescButtonText = (getAscDescCookie())?"Sort Asc":"Sort Desc";
+        this.requestUpdate();
+    }
+
+    /**
      * Handle auto-loading for doomscrolling based on the user's scroll position
      */
     doScroll(){
@@ -217,6 +239,31 @@ export class ResultsPage extends LitElement {
                 this.pageOffset += 1;
             }
         }
+    }
+
+    filterResults(event){
+        let minWidth = this.shadowRoot.getElementById("min-width").value;
+        let minHeight = this.shadowRoot.getElementById("min-height").value;
+        let useAR = this.shadowRoot.getElementById("aspect-ratio-toggle").checked;
+
+        let queryList= [];
+        if(minWidth > 0){
+            queryList.push("min_width=" + minWidth);
+        }
+        if(minHeight > 0){
+            queryList.push("min_height=" + minHeight);
+        }
+        if(useAR){
+            queryList.push("aspect_ratio=" + minWidth / minHeight);
+        }
+
+        let queryString = queryList.join("&");
+
+        window.location=`/${webapp_name}/resultsPage.html?${getTagsQueryString()}&${queryString}`;
+
+        // One or both of these prevents the form from refreshing the page...
+        event.preventDefault();
+        return false;
     }
 
     render(){
@@ -239,7 +286,19 @@ export class ResultsPage extends LitElement {
             <link rel="stylesheet" href="template.css">
             <div class="results-edit-toggle">
                 <button @click=${this.toggleEditing}>Edit Tags</button>
-                <button @click=${this.toggleDoomScroll}>${this.doomScrollButtonText}</button>
+                <div class="results-bar-group">
+                    <button @click=${this.toggleDoomScroll}>${this.doomScrollButtonText}</button>
+                    <button @click=${this.toggleAscDesc}>${this.ascDescButtonText}</button>
+                </div>
+                <form @submit="${this.filterResults}" class="results-bar-group">
+                    <label for="min-width" style="color: var(--accent-color-primary)">Min Width</label>
+                    <input type="number" id="min-width" value="${this.widthValue}">
+                    <label for="min-height" style="color: var(--accent-color-primary)">Min Height</label>
+                    <input type="number" id="min-height" value="${this.heightValue}">
+                    <label for="aspect-ratio-toggle" style="color: var(--accent-color-primary)">Aspect Ratio</label>
+                    <input type="checkbox" id="aspect-ratio-toggle" .checked=${this.arValue}>
+                    <input name="commit" type="submit" value="Filter Results">
+                </form>
             </div>
             <div class="image_flex" id="result-list" @scroll=${this.doScroll}>
                 ${this.resultElements}

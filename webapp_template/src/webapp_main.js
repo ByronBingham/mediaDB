@@ -15,5 +15,5 @@ window.goToResults = function() {
     });
     tagsString = filteredTags.join(',');
 
-    window.location= `${webapp_name}/resultsPage.html?search=` + tagsString;
+    window.location= `${webapp_name}/resultsPage.html?tags=` + tagsString;
 }

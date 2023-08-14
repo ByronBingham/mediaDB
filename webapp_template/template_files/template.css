@@ -112,6 +112,12 @@ body {
     scale: 2;
 }
 
+.results-bar-group {
+    background-color: var(--background-color-primary);
+    margin: 4px;
+    padding: 5px
+}
+
 .results-edit-toggle {
     background-color: var(--accent-color-primary);
     display: flex;
