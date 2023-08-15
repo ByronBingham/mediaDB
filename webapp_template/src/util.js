@@ -3,6 +3,51 @@
  */
 
 /**
+ * Gets a parameter from the URL
+ * 
+ * @param {*} paramName Name of parameter to get
+ * @returns 
+ */
+export function getUrlParam(paramName){
+    let params = (new URL(document.location)).searchParams;
+    return params.get(paramName);
+}
+
+/**
+ * Gets the optional search queries from the URL.
+ * 
+ * @returns "min_width=[...]&min_height=[...]&aspect_ratio=[...]"
+ */
+export function getExtraUrlParamQueries(){
+    let params = (new URL(document.location)).searchParams;
+    let extraQueriesList = [];
+    if(params.has("min_width")){
+        extraQueriesList.push("min_width=" + params.get("min_width"));
+    }
+    if(params.has("min_height")){
+        extraQueriesList.push("min_height=" + params.get("min_height"));
+    }
+    if(params.has("aspect_ratio")){
+        extraQueriesList.push("aspect_ratio=" + params.get("aspect_ratio"));
+    }
+    return extraQueriesList.join("&");
+}
+
+/**
+ * Gets the search tags from the URL.
+ * 
+ * @returns "tags=[tag1],[tag2],..."
+ */
+export function getTagsQueryString(){
+    let params = (new URL(document.location)).searchParams;
+    if(params.has("tags")){
+        return "tags=" + params.getAll("tags");
+    } else {
+        return "tags=";
+    }
+  }
+
+/**
  * Gets the NSFW cookie
  * @returns true/false
  */
@@ -48,6 +93,30 @@ export function getDoomScrollCookie(){
 */
 export function setDoomScrollCookie(bool){
   document.cookie = "doomScroll=" + bool.toString() + ";";
+}
+
+/**
+ * Gets the ascending/descending cookie
+ * @returns true/false
+ */
+export function getAscDescCookie(){
+  let val = getCookie("ascDesc");
+  if(val === ""){
+      document.cookie = "ascDesc=false;";
+      return false;
+  }
+  if(val === 'true'){
+      return true;
+  } else {
+      return false;
+  }
+}
+
+/**
+* Sets the ascending/descending cookie
+*/
+export function setAscDescCookie(bool){
+  document.cookie = "ascDesc=" + bool.toString() + ";";
 }
 
 /**

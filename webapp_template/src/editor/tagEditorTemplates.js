@@ -37,6 +37,9 @@ export class TagConrolBar extends LitElement {
         this.tagList = tagList;
     }
 
+    /**
+     * Opens the add tag form
+     */
     openAddTagForm(){
         this.shadowRoot.getElementById("add-tag-button").style.display = "none";
         this.shadowRoot.getElementById("add-tag-form").style.display = "inline";
@@ -44,6 +47,9 @@ export class TagConrolBar extends LitElement {
         this.requestUpdate();
     }
 
+    /**
+     * Closes the add tag form
+     */
     closeAddTagForm(){
         this.shadowRoot.getElementById("add-tag-button").style.display = "inline";
         this.shadowRoot.getElementById("add-tag-form").style.display = "none";
@@ -52,11 +58,20 @@ export class TagConrolBar extends LitElement {
         this.requestUpdate();
     }
 
+    /**
+     * Clears data from the tag adding form
+     */
     clearAddTagForm(){
         this.shadowRoot.getElementById("tag-name-txt").value = "";
         this.shadowRoot.getElementById("nsfw-check").checked = false;
     }
 
+    /**
+     * Adds a tag to the DB
+     * 
+     * @param {*} event Submit event
+     * @returns 
+     */
     submitAddTagForm(event){
         let tagName = this.shadowRoot.getElementById("tag-name-txt").value;
         let nsfw = this.shadowRoot.getElementById("nsfw-check").checked;
@@ -103,6 +118,11 @@ export class TagList extends LitElement {
         }}).then(this.initTagList.bind(this));
     }
 
+    /**
+     * Initializes and populates the tag list
+     * 
+     * @param {*} text Response string from API including list of all tags
+     */
     initTagList(text){        
         text = text.replaceAll("\\", "\\\\");
         let data = JSON.parse(text);
@@ -113,6 +133,12 @@ export class TagList extends LitElement {
         this.requestUpdate();
     }
 
+    /**
+     * Adds a tag element to the tag list
+     * 
+     * @param {*} tagName Name of tag
+     * @param {*} nsfw Whether nsfw or not
+     */
     addTag(tagName, nsfw) {
         this.tagElements.push(new TagElement(tagName, nsfw))
 
@@ -121,11 +147,6 @@ export class TagList extends LitElement {
         }
 
         this.tagElements.sort(sortFunction);
-        this.requestUpdate();
-    }
-
-    setTagElementList(tags){
-        this.tagElements = tags;
         this.requestUpdate();
     }
 
@@ -147,10 +168,18 @@ export class TagElement extends LitElement {
         this.nsfw = nsfw;
     }
 
+    /**
+     * Gets the tag name of this element
+     * 
+     * @returns Tag name
+     */
     getTagName(){
         return this.name;
     }
 
+    /**
+     * Updates the tag in the DB
+     */
     updateTag(){
         let nsfwVal = this.shadowRoot.getElementById("nsfw-check").checked;
 

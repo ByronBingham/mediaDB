@@ -3,7 +3,7 @@
  */
 
 import { LitElement, html } from 'lit-element';
-import { getNswfCookie, setNswfCookie } from './util';
+import { getExtraUrlParamQueries, getNswfCookie, getUrlParam, setNswfCookie } from './util';
 
 /**
  * Template search bar
@@ -11,10 +11,21 @@ import { getNswfCookie, setNswfCookie } from './util';
 export class SearchBar extends LitElement {
     constructor(){
         super();
+        this.searchString = "";
+        let tags = getUrlParam("tags");
+        if(tags !== undefined && tags !== null){
+            let tagArr = tags.split(",");
+            this.searchString = tagArr.join(" ");
+        }
     }
 
+    /**
+     * Goes to the results page for this search
+     * 
+     * @param {*} event Submit event
+     * @returns 
+     */
     goToResults(event){
-        console.log("stuff");
         let tags = this.shadowRoot.getElementById("tags-search").value.split(' ');
         let filteredTags = [];
         tags.forEach(tag => {
@@ -24,7 +35,7 @@ export class SearchBar extends LitElement {
         });
         let tagsString = filteredTags.join(',');
 
-        window.location=`/${webapp_name}/resultsPage.html?search=` + tagsString;
+        window.location=`/${webapp_name}/resultsPage.html?tags=` + tagsString;
 
         // One or both of these prevents the form from refreshing the page...
         event.preventDefault();
@@ -33,7 +44,7 @@ export class SearchBar extends LitElement {
 
     render(){
         return html`<form @submit="${this.goToResults}">
-                        <input id="tags-search" name="tags" type="text" placeholder="Ex: blue_sky cloud 1girl">
+                        <input id="tags-search" name="tags" type="text" placeholder="Ex: blue_sky cloud 1girl" value="${this.searchString}">
                         <input name="commit" type="submit" value="Search">
                         <br><br>
                     </form>`;
@@ -53,16 +64,25 @@ export class TopBar extends LitElement {
         }
     }
 
+    /**
+     * Go to the home page
+     */
     goToHome(){
         window.location=`/${webapp_name}`;
     }
 
+    /**
+     * Toggles the nsfw value
+     */
     toggle(){
         let checkbox = this.shadowRoot.getElementById("nsfw-check");
         this.nswf = checkbox.checked;
         setNswfCookie(this.nswf);
     }
 
+    /**
+     * Makes nsfw toggle visible
+     */
     unhideNsfw(){
         this.visibility = "visible";
         this.requestUpdate();
@@ -91,10 +111,10 @@ export class TopBar extends LitElement {
  * Tempolate page number element. Clicking on this takes the user to the page specified in an instance of this element
  */
 export class PageNumber extends LitElement {
-    constructor(value, url, isCurrent){
+    constructor(value, pageNumber, url, isCurrent){
         super();
         this.value = value;
-        this.url = url;
+        this.url = url +"&page=" + pageNumber;
         this.isCurrent = isCurrent;
         this.style="display: flex;";
     }
@@ -117,14 +137,17 @@ export class PageSelector extends LitElement {
     constructor(){
         super();
         let params = (new URL(document.location)).searchParams;
-        let searchString = params.get("search");
+        let searchString = params.get("tags");
+        if(searchString === undefined || searchString === null){
+            searchString = "";
+        }
         this.currentPageNum = params.get("page");
         if(this.currentPageNum === undefined || this.currentPageNum === null){
             this.currentPageNum = 0;
         } else {
             this.currentPageNum = parseInt(this.currentPageNum);
         }
-        this.baseUrl = `/${webapp_name}/resultsPage.html?search=${searchString}&page=`
+        this.baseUrl = `/${webapp_name}/resultsPage.html?tags=${searchString}&${getExtraUrlParamQueries()}`
 
         this.backPage = html``;
         this.backbackPage = html``;
@@ -137,8 +160,9 @@ export class PageSelector extends LitElement {
         this.pageFwTwo = html``;
         this.pageFwOne = html``;
 
+        let extraQueriesString = getExtraUrlParamQueries();
         let nsfw = getNswfCookie();
-        fetch(`${apiAddr}/search_images/by_tag/page/count?table_name=${dbTableName}&tags=${searchString}&results_per_page=${default_images_per_page}&include_nsfw=${nsfw}`).then((response) =>{
+        fetch(`${apiAddr}/search_images/by_tag/page/count?table_name=${dbTableName}&tags=${searchString}&results_per_page=${default_images_per_page}&include_nsfw=${nsfw}&${extraQueriesString}`).then((response) =>{
             if(response.ok){
                 return response.json();
             } else {
@@ -158,54 +182,54 @@ export class PageSelector extends LitElement {
         let lastPageNum = data["pages"] - 1;
 
         if(this.currentPageNum > 0){
-            this.backPage = new PageNumber("<", this.baseUrl + (this.currentPageNum - 1), false);
+            this.backPage = new PageNumber("<", (this.currentPageNum - 1), this.baseUrl, false);
         }
 
         if(this.currentPageNum > 1){
-            this.backbackPage = new PageNumber("<<", this.baseUrl + 0, false);
+            this.backbackPage = new PageNumber("<<", 0, this.baseUrl, false);
         }
 
         if(this.currentPageNum > 4){
-            this.pageBackFive = new PageNumber(`${this.currentPageNum - 5}`, this.baseUrl + (this.currentPageNum - 5), false);
+            this.pageBackFive = new PageNumber(`${this.currentPageNum - 5}`, (this.currentPageNum - 5), this.baseUrl, false);
             this.pageBackFive = html`${this.pageBackFive}<p class="page-number">...</p>`;
         }
 
         
         if(this.currentPageNum > 1){
-            this.pageBackTwo = new PageNumber(`${this.currentPageNum - 2}`, this.baseUrl + (this.currentPageNum - 2), false);
+            this.pageBackTwo = new PageNumber(`${this.currentPageNum - 2}`, (this.currentPageNum - 2), this.baseUrl, false);
         }
 
         
         if(this.currentPageNum > 0){
-            this.pageBackOne = new PageNumber(`${this.currentPageNum - 1}`, this.baseUrl + (this.currentPageNum - 1), false);
+            this.pageBackOne = new PageNumber(`${this.currentPageNum - 1}`, (this.currentPageNum - 1), this.baseUrl, false);
         }
 
-        this.currentPageElement = new PageNumber(this.currentPageNum, this.baseUrl + this.currentPageNum, true);
+        this.currentPageElement = new PageNumber(this.currentPageNum, this.currentPageNum, this.baseUrl, true);
 
         
         if(this.currentPageNum < lastPageNum){
-            this.fwPage = new PageNumber(">", this.baseUrl + (this.currentPageNum + 1), false);
+            this.fwPage = new PageNumber(">", (this.currentPageNum + 1), this.baseUrl, false);
         }
 
         
         if(this.currentPageNum < lastPageNum - 1){
-            this.fwfwPage = new PageNumber(">>", this.baseUrl + lastPageNum, false);
+            this.fwfwPage = new PageNumber(">>", lastPageNum, this.baseUrl, false);
         }
 
         
         if(this.currentPageNum < lastPageNum - 4){
-            this.pageFwFive = new PageNumber(`${this.currentPageNum + 5}`, this.baseUrl + (this.currentPageNum + 5), false);
+            this.pageFwFive = new PageNumber(`${this.currentPageNum + 5}`, (this.currentPageNum + 5), this.baseUrl, false);
             this.pageFwFive = html`<p class="page-number">...</p>${this.pageFwFive}`;
         }
 
         
         if(this.currentPageNum < lastPageNum - 1){
-            this.pageFwTwo = new PageNumber(`${this.currentPageNum + 2}`, `${this.baseUrl}${this.currentPageNum + 2}`, false);
+            this.pageFwTwo = new PageNumber(`${this.currentPageNum + 2}`, this.currentPageNum + 2, `${this.baseUrl}`, false);
         }
 
         
         if(this.currentPageNum < lastPageNum){
-            this.pageFwOne = new PageNumber(`${this.currentPageNum + 1}`, `${this.baseUrl}${this.currentPageNum + 1}`, false);
+            this.pageFwOne = new PageNumber(`${this.currentPageNum + 1}`, this.currentPageNum + 1, `${this.baseUrl}`, false);
         }
 
         console.log("Page Selector Done Loading");

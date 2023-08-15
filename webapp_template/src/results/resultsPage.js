@@ -3,7 +3,7 @@
  */
 
 import {ResultPageElement, ResultsPage} from './resultsTemplates';
-import { getNswfCookie } from '../util';
+import { getNswfCookie, getAscDescCookie, getExtraUrlParamQueries } from '../util';
 
 var resultPage = undefined;
 
@@ -23,7 +23,7 @@ window.onload = function(){
  */
 export const doSearch = function(pageOffset){
     let params = (new URL(document.location)).searchParams;
-    let searchString = params.get("search");
+    let searchString = params.get("tags");
     let currentPageNum = params.get("page");
     if(currentPageNum === undefined || currentPageNum === null){
         currentPageNum = 0;
@@ -79,14 +79,17 @@ const handleSearchResponse = function(data){
  */
 const sendSearchRequest = function(tagsString, pageNum){
     // query API
-    let nsfw = getNswfCookie()
+    let nsfw = getNswfCookie();
+    
+    let extraQueriesString = getExtraUrlParamQueries();
+
     let requestString = `${apiAddr}/search_images/by_tag/page?table_name=${dbTableName}&tags=${tagsString}&page_num=${pageNum}&results_per_page=${default_images_per_page}` +
-    `&include_thumb=false&include_nsfw=${nsfw}`;
+    `&include_thumb=false&include_nsfw=${nsfw}&asc_desc=${getAscDescCookie()}&${extraQueriesString}`;
 
     // send request
     fetch(requestString).then((response) =>{
         return response.json();
     }
-    ).then(handleSearchResponse);  
+    ).then(handleSearchResponse);
     
 }
