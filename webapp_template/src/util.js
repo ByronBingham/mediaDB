@@ -2,6 +2,12 @@
  * File with utility functions
  */
 
+/**
+ * Gets a parameter from the URL
+ * 
+ * @param {*} paramName Name of parameter to get
+ * @returns 
+ */
 export function getUrlParam(paramName){
     let params = (new URL(document.location)).searchParams;
     return params.get(paramName);

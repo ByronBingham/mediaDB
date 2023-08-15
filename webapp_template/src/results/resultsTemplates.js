@@ -241,6 +241,12 @@ export class ResultsPage extends LitElement {
         }
     }
 
+    /**
+     * Takes the parameters given for width/height/aspect ratio and filters the results
+     * 
+     * @param {*} event Submit event
+     * @returns 
+     */
     filterResults(event){
         let minWidth = this.shadowRoot.getElementById("min-width").value;
         let minHeight = this.shadowRoot.getElementById("min-height").value;

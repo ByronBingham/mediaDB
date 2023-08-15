@@ -19,6 +19,12 @@ export class SearchBar extends LitElement {
         }
     }
 
+    /**
+     * Goes to the results page for this search
+     * 
+     * @param {*} event Submit event
+     * @returns 
+     */
     goToResults(event){
         let tags = this.shadowRoot.getElementById("tags-search").value.split(' ');
         let filteredTags = [];
@@ -58,16 +64,25 @@ export class TopBar extends LitElement {
         }
     }
 
+    /**
+     * Go to the home page
+     */
     goToHome(){
         window.location=`/${webapp_name}`;
     }
 
+    /**
+     * Toggles the nsfw value
+     */
     toggle(){
         let checkbox = this.shadowRoot.getElementById("nsfw-check");
         this.nswf = checkbox.checked;
         setNswfCookie(this.nswf);
     }
 
+    /**
+     * Makes nsfw toggle visible
+     */
     unhideNsfw(){
         this.visibility = "visible";
         this.requestUpdate();
