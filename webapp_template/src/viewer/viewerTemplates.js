@@ -3,6 +3,7 @@
  */
 
 import { LitElement, html } from 'lit-element';
+import { TagInput } from '../globalTemplates';
 
 /**
  * Template for the image viewer page
@@ -35,62 +36,23 @@ export class ImageTagConrolBar extends LitElement {
         super();
         this.id = id;
         this.imageTagList = imageTagList;
+        this.tagInput = new TagInput(this.submitAddTagForm, this, "Add Tag", false);
     }
 
-    openAddTagForm(){
-        this.shadowRoot.getElementById("add-tag-button").style.display = "none";
-        this.shadowRoot.getElementById("add-tag-form").style.display = "inline";
-
-        this.requestUpdate();
-    }
-
-    closeAddTagForm(){
-        this.shadowRoot.getElementById("add-tag-button").style.display = "inline";
-        this.shadowRoot.getElementById("add-tag-form").style.display = "none";
-
-        this.removeEventListener("keyup", this);
-
-        this.clearAddTagForm();
-        this.requestUpdate();
-    }
-
-    clearAddTagForm(){
-        this.shadowRoot.getElementById("tag-name-txt").value = "";
-        this.shadowRoot.getElementById("nsfw-check").checked = false;
-    }
-
-    submitAddTagForm(event){
-        let tagName = this.shadowRoot.getElementById("tag-name-txt").value;
-        let nsfw = this.shadowRoot.getElementById("nsfw-check").checked;
-        fetch(`${apiAddr}/images/add_tag?table_name=${dbTableName}&id=${this.id}&tag_name=${tagName}&nsfw=${nsfw}`).then((response) => {
-            if(response.ok){
-                this.imageTagList.addTagElement({"tag_name": tagName, "nsfw": nsfw});
-            } else {
-                console.log("ERROR adding tag to image");
-            }
-        });
-
-        this.clearAddTagForm();
-        // One or both of these prevents the form from refreshing the page...
-        event.preventDefault();
-        return false;
+    submitAddTagForm(tagList){
+        tagList.forEach((tagName) =>{
+            fetch(`${apiAddr}/images/add_tag?table_name=${dbTableName}&id=${this.id}&tag_name=${tagName}`).then((response) => {
+                if(response.ok){
+                    this.imageTagList.addTagElement({"tag_name": tagName, "nsfw": false});
+                } else {
+                    console.log("ERROR adding tag to image");
+                }
+            });
+        });        
     }
 
     render(){
-        return html`<div>
-                        <button type="button" id="add-tag-button" @click=${this.openAddTagForm}>Add Tag</button>
-
-                        <div id="add-tag-form" style="display: none;">
-                                <button type="button" @click=${this.closeAddTagForm}>X</button>
-                                <form @submit="${this.submitAddTagForm}">
-                                    <input type="text" id="tag-name-txt">
-                                    <input type="checkbox" id="nsfw-check">
-                                    <input name="commit" type="submit" value="Submit">
-                                </form>
-                                
-                        </div>
-                        
-                    </div>`;
+        return html`${this.tagInput}`;
     }
 }
 
@@ -197,7 +159,7 @@ export class ImageTag extends LitElement {
     }
 
     searchTag(){
-        window.location=`/${webapp_name}/resultsPage.html?tags=${this.name}`;
+        window.location=`/${webapp_name}/resultsPage.html?search=${this.name}`;
     }
 
     render(){

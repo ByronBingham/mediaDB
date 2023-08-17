@@ -230,19 +230,21 @@ export class PageSelector extends LitElement {
 }
 
 export class TagInput extends LitElement {
-    constructor(submitCallback, parent, submitText){
+    constructor(submitCallback, parent, submitText, prePopulate=true){
         super();
         this.submitText = submitText;
         this.submitCallback = submitCallback.bind(parent);
         this.parent = parent;
         this.searchString = "";
         this.submittedTags = [];
-        let tags = getUrlParam("tags");
-        if(tags !== undefined && tags !== null){
-            let tagArr = tags.split(",");
-            tagArr.forEach((tag) =>{
-                this.submittedTags.push(tag);
-            });
+        if(prePopulate){
+            let tags = getUrlParam("tags");
+            if(tags !== undefined && tags !== null){
+                let tagArr = tags.split(",");
+                tagArr.forEach((tag) =>{
+                    this.submittedTags.push(tag);
+                });
+            }
         }
         this.tagList = [];
         getListOfAllTags().then(this.updateTagList.bind(this));
@@ -276,6 +278,8 @@ export class TagInput extends LitElement {
 
         console.log(filteredTags);
         this.submitCallback(filteredTags);
+
+        this.clearTags();
 
         // One or both of these prevents the form from refreshing the page...
         event.preventDefault();
