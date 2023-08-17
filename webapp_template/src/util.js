@@ -140,3 +140,16 @@ export function getCookie(cname) {
     }
     return "";
 }
+
+export async function getListOfAllTags(){
+    let tagList = [];
+
+    let response = await fetch(`${apiAddr}/tags/get_all_tags`);
+    let text = await response.text();
+    text = text.replaceAll("\\", "\\\\");
+    let data = JSON.parse(text);
+    data.forEach(tag => {
+        tagList.push(tag["tag_name"]);
+    });
+    return tagList;
+}

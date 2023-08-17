@@ -3,7 +3,7 @@
  */
 
 import { LitElement, html } from 'lit-element';
-import { getExtraUrlParamQueries, getNswfCookie, getUrlParam, setNswfCookie } from './util';
+import { getExtraUrlParamQueries, getListOfAllTags, getNswfCookie, getUrlParam, setNswfCookie } from './util';
 
 /**
  * Template search bar
@@ -11,12 +11,7 @@ import { getExtraUrlParamQueries, getNswfCookie, getUrlParam, setNswfCookie } fr
 export class SearchBar extends LitElement {
     constructor(){
         super();
-        this.searchString = "";
-        let tags = getUrlParam("tags");
-        if(tags !== undefined && tags !== null){
-            let tagArr = tags.split(",");
-            this.searchString = tagArr.join(" ");
-        }
+        this.tagInput = new TagInput(this.goToResults, this, "Search");
     }
 
     /**
@@ -25,29 +20,14 @@ export class SearchBar extends LitElement {
      * @param {*} event Submit event
      * @returns 
      */
-    goToResults(event){
-        let tags = this.shadowRoot.getElementById("tags-search").value.split(' ');
-        let filteredTags = [];
-        tags.forEach(tag => {
-            if(tag !== ''){
-                filteredTags.push(tag);
-            }
-        });
-        let tagsString = filteredTags.join(',');
+    goToResults(tagList){
+        let tagsString = tagList.join(',');
 
         window.location=`/${webapp_name}/resultsPage.html?tags=` + tagsString;
-
-        // One or both of these prevents the form from refreshing the page...
-        event.preventDefault();
-        return false;
     }
 
     render(){
-        return html`<form @submit="${this.goToResults}">
-                        <input id="tags-search" name="tags" type="text" placeholder="Ex: blue_sky cloud 1girl" value="${this.searchString}">
-                        <input name="commit" type="submit" value="Search">
-                        <br><br>
-                    </form>`;
+        return html`${this.tagInput}`;
     }
 }
 
@@ -249,8 +229,108 @@ export class PageSelector extends LitElement {
 
 }
 
+export class TagInput extends LitElement {
+    constructor(submitCallback, parent, submitText){
+        super();
+        this.submitText = submitText;
+        this.submitCallback = submitCallback.bind(parent);
+        this.parent = parent;
+        this.searchString = "";
+        this.submittedTags = [];
+        let tags = getUrlParam("tags");
+        if(tags !== undefined && tags !== null){
+            let tagArr = tags.split(",");
+            tagArr.forEach((tag) =>{
+                this.submittedTags.push(tag);
+            });
+        }
+        this.tagList = [];
+        getListOfAllTags().then(this.updateTagList.bind(this));
+    }
+
+    updateTagList(tagsArray){
+        this.tagList = tagsArray;
+        this.requestUpdate();
+    }
+
+    /**
+     * Goes to the results page for this search
+     * 
+     * @param {*} event Submit event
+     * @returns 
+     */
+    doCallback(event){
+        let lastTags = this.shadowRoot.getElementById("tags-search").value.split(' ');
+        lastTags = lastTags.concat(this.submittedTags);
+        let filteredTags = [];
+        let tagMap = new Map();
+        lastTags.forEach(tag => {
+            if(tag !== ''){
+                tagMap.set(tag, 1);
+            }
+        });
+        let tagIter = tagMap.keys();
+        for(const tag of tagIter){
+            filteredTags.push(tag);
+        }
+
+        console.log(filteredTags);
+        this.submitCallback(filteredTags);
+
+        // One or both of these prevents the form from refreshing the page...
+        event.preventDefault();
+        return false;
+    }
+
+    clearTags(){
+        this.submittedTags = [];
+        this.shadowRoot.getElementById("tags-search").value = "";
+        this.requestUpdate();
+    }
+
+    updateTagInput(event){
+        let inputElement = this.shadowRoot.getElementById("tags-search");
+        if(event.keyCode === 32) { // If space was pressed, check if we can autocomplete
+            this.submittedTags.push(inputElement.value.trim());
+            inputElement.value = "";
+        } else if(event.keyCode === 8) {    // Update suggestions
+            if(inputElement.value === ""){
+                let lastElement = this.submittedTags.pop();
+                if(lastElement === undefined || lastElement === null){
+                    inputElement.value = "";
+                } else {
+                    inputElement.value = lastElement;
+                }
+            }
+        }
+        this.requestUpdate();
+    }
+
+    render(){
+        let options = [];
+
+        this.tagList.forEach(tag => {
+            options.push(html`<option value="${tag}">${tag}</option>`);
+        });
+
+        return html`
+                    <link rel="stylesheet" href="template.css">
+                    <form class="results-bar-group" @submit="${this.doCallback}">
+                        <label id="tag-input-label" for="tags-search" style="color: var(--accent-color-primary)">${this.submittedTags.join(" ")}</label>
+                        <input id="tags-search" name="tags" type="text" placeholder="Ex: blue_sky cloud 1girl" value="${this.searchString}" list="tagsList" autocomplete="off"
+                        @keyup="${this.updateTagInput}" @change="${this.updateTagInput}">                        
+                        <datalist id="tagsList">
+                            ${options}
+                        </datalist>
+                        <input name="clear" type="button" value="X" @click="${this.clearTags}">
+                        <input name="commit" type="submit" value="${this.submitText}">
+                    </form>`;
+    }
+}
+
 // Register elements
 customElements.define('search-bar', SearchBar);
 customElements.define('top-bar', TopBar);
 customElements.define('page-number', PageNumber);
 customElements.define('page-selector', PageSelector);
+customElements.define('tag-input', TagInput);

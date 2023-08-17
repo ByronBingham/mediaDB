@@ -113,8 +113,7 @@ export class TagList extends LitElement {
             if(response.ok){
                 return response.text();
         } else {
-            console.log("ERROR fetching page count for search\n" +
-            "Tags: " + searchString)
+            console.log("ERROR fetching all tags form DB");
         }}).then(this.initTagList.bind(this));
     }
 
