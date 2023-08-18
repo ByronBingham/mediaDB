@@ -5,12 +5,11 @@ import { LitElement, html } from 'lit-element';
  */
 export class IndexPage extends LitElement {
 
+    /**
+     * IndexPage contructor
+     */
     constructor(){
         super();
-    }
-
-    viewImageFullScreen(){
-
     }
 
     render(){

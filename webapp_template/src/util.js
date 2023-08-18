@@ -141,6 +141,11 @@ export function getCookie(cname) {
     return "";
 }
 
+/**
+ * Gets a list of all tags in this GUI's DB tag table
+ * 
+ * @returns List of tag names
+ */
 export async function getListOfAllTags(){
     let tagList = [];
 

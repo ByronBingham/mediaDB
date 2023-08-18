@@ -10,12 +10,21 @@ import { TagInput } from '../globalTemplates';
  */
 export class ImageViewer extends LitElement {
 
+    /**
+     * ImageViewer constructor
+     * 
+     * @param {*} id ID of image to show
+     * @param {*} imageUrl URL of image
+     */
     constructor(id, imageUrl){
         super();
         this.id = id;
         this.imageUrl = imageUrl;
     }
 
+    /**
+     * NYI. Should show the viewed image full screen
+     */
     viewImageFullScreen(){
         // TODO: implement
     }
@@ -32,6 +41,13 @@ export class ImageViewer extends LitElement {
  * Template for control bar with image viewer settings
  */
 export class ImageTagConrolBar extends LitElement {
+
+    /**
+     *  ImageTagConrolBar constructor
+     *
+     * @param {*} id ID of image
+     * @param {*} imageTagList Reference to tag list associated with the viewed image
+     */
     constructor(id, imageTagList){
         super();
         this.id = id;
@@ -39,6 +55,11 @@ export class ImageTagConrolBar extends LitElement {
         this.tagInput = new TagInput(this.submitAddTagForm, this, "Add Tag", false);
     }
 
+    /**
+     * Add all tags specified to the viewed image
+     * 
+     * @param {*} tagList List of tag names to add
+     */
     submitAddTagForm(tagList){
         tagList.forEach((tagName) =>{
             fetch(`${apiAddr}/images/add_tag?table_name=${dbTableName}&id=${this.id}&tag_name=${tagName}`).then((response) => {
@@ -60,6 +81,12 @@ export class ImageTagConrolBar extends LitElement {
  * Template tag list for the image viewer page
  */
 export class ImageTagList extends LitElement {
+
+    /**
+     * ImageTagList constructor
+     * 
+     * @param {*} id ID of image being viewed
+     */
     constructor(id){
         super();
         this.tagData = [];
@@ -70,6 +97,11 @@ export class ImageTagList extends LitElement {
         this.tagControlBar = new ImageTagConrolBar(this.id, this);
     }
 
+    /**
+     * Add a new ImmageTag to the list
+     * 
+     * @param {*} data Tag data {"tag_name": ... , "nsfw": ...}
+     */
     addTagElement(data){
         let tagName = data["tag_name"];
         let nsfw = data["nsfw"];
@@ -90,6 +122,11 @@ export class ImageTagList extends LitElement {
         this.requestUpdate();
     }
 
+    /**
+     * Remove tag from list
+     * 
+     * @param {*} tagName Name of tag to remove
+     */
     removeTag(tagName){
         for(let i = 0; i < this.tagData.length; i++){
             if(this.tagData[i]["tag_name"] === tagName){
@@ -112,6 +149,9 @@ export class ImageTagList extends LitElement {
         this.requestUpdate();
     }
 
+    /**
+     * Toggle editor shown/hidden
+     */
     toggleEditor(){
         if(this.editing){
             this.tagControlBar.closeAddTagForm();
@@ -148,18 +188,33 @@ export class ImageTagList extends LitElement {
  * Template for individual tag element in image viewer tag list
  */
 export class ImageTag extends LitElement {
+
+    /**
+     * ImageTag constructor
+     * 
+     * @param {*} tagName Name of tag
+     * @param {*} nsfw NSFW (true/false)
+     */
     constructor(tagName, nsfw){
         super();
         this.name = tagName;
         this.nsfw = nsfw;
     }
 
+    /**
+     * Name of this tag
+     * 
+     * @returns Tag name
+     */
     getTagName(){
         return this.name;
     }
 
+    /**
+     * Seach for this tag
+     */
     searchTag(){
-        window.location=`/${webapp_name}/resultsPage.html?search=${this.name}`;
+        window.location=`/${webapp_name}/resultsPage.html?tags=${this.name}`;
     }
 
     render(){
@@ -173,6 +228,15 @@ export class ImageTag extends LitElement {
  * Template for individual, editable tag element in image viewer tag list
  */
 export class EditTagElement extends LitElement {
+
+    /**
+     * EditTagElement constructor
+     * 
+     * @param {*} tagName Tag name
+     * @param {*} nsfw NSFW (true/false)
+     * @param {*} imageTagList Reference to tag list associated with the viewed image
+     * @param {*} id ID of viewed image
+     */
     constructor(tagName, nsfw, imageTagList, id){
         super();
         this.name = tagName;
@@ -181,10 +245,18 @@ export class EditTagElement extends LitElement {
         this.id = id;
     }
 
+    /**
+     * Get the name of this tag
+     * 
+     * @returns Tag name
+     */
     getTagName(){
         return this.name;
     }
 
+    /**
+     * Delete this tag from the viewed image
+     */
     deleteTag(){
         fetch(`${apiAddr}/images/delete_tag?table_name=${dbTableName}&id=${this.id}&tag_name=${this.name}`).then((response) => {
             if(response.ok){

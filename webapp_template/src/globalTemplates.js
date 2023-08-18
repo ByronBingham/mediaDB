@@ -9,6 +9,10 @@ import { getExtraUrlParamQueries, getListOfAllTags, getNswfCookie, getUrlParam, 
  * Template search bar
  */
 export class SearchBar extends LitElement {
+
+    /**
+     * SearchBar constructor
+     */
     constructor(){
         super();
         this.tagInput = new TagInput(this.goToResults, this, "Search");
@@ -35,6 +39,10 @@ export class SearchBar extends LitElement {
  * Template topbar. Includes a home button, search bar, and hidden nsfw toggle
  */
 export class TopBar extends LitElement {
+
+    /**
+     * TopBar contructor
+     */
     constructor(){
         super();
         this.nswf = getNswfCookie();
@@ -91,6 +99,15 @@ export class TopBar extends LitElement {
  * Tempolate page number element. Clicking on this takes the user to the page specified in an instance of this element
  */
 export class PageNumber extends LitElement {
+
+    /**
+     * PageNumber constructor
+     * 
+     * @param {*} value Charater to display
+     * @param {*} pageNumber Page number this element represents
+     * @param {*} url Base url to append page # to
+     * @param {*} isCurrent (true/false) if this element represents the current page
+     */
     constructor(value, pageNumber, url, isCurrent){
         super();
         this.value = value;
@@ -114,6 +131,10 @@ export class PageNumber extends LitElement {
  * Template page selector element. Contains multiple page numbers that can be selected, as well as page-forward/back arrows
  */
 export class PageSelector extends LitElement {
+
+    /**
+     * PageSelector constructor
+     */
     constructor(){
         super();
         let params = (new URL(document.location)).searchParams;
@@ -229,7 +250,21 @@ export class PageSelector extends LitElement {
 
 }
 
+/**
+ * Template for a tag input. Allows users to input a list of tags while getting tag suggestions
+ * 
+ * TODO: make less jank...
+ */
 export class TagInput extends LitElement {
+
+    /**
+     * TagInput constructor
+     * 
+     * @param {*} submitCallback Callback function that should be called when this form is submitted. Callback should expect to take a list of tag names as input
+     * @param {*} parent Parent owning the instance of this class
+     * @param {*} submitText Text to display on the submit button of this form
+     * @param {*} prePopulate If true, takes the tags from the URL parameters of the loaded page and adds them to this form. If false, does not pre-load any tags
+     */
     constructor(submitCallback, parent, submitText, prePopulate=true){
         super();
         this.submitText = submitText;
@@ -250,6 +285,11 @@ export class TagInput extends LitElement {
         getListOfAllTags().then(this.updateTagList.bind(this));
     }
 
+    /**
+     * Update the list of tags in this object with an input list of tags
+     * 
+     * @param {*} tagsArray List of tag names
+     */
     updateTagList(tagsArray){
         this.tagList = tagsArray;
         this.requestUpdate();
@@ -286,12 +326,23 @@ export class TagInput extends LitElement {
         return false;
     }
 
+    /**
+     * Clear all tags from this form
+     */
     clearTags(){
         this.submittedTags = [];
         this.shadowRoot.getElementById("tags-search").value = "";
         this.requestUpdate();
     }
 
+    /**
+     * Called on any keypress. Checks for space and backspace input.
+     * 
+     * For space, pushes the current word to this form's tag list.
+     * For backspace, if the input box is also empty, pops the last tag from this form's tag list and puts it into the input box
+     * 
+     * @param {*} event Keypress event
+     */
     updateTagInput(event){
         let inputElement = this.shadowRoot.getElementById("tags-search");
         if(event.keyCode === 32) { // If space was pressed, check if we can autocomplete

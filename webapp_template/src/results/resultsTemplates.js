@@ -12,6 +12,13 @@ import { TagInput } from '../globalTemplates';
  */
 export class ResultPageElement extends LitElement {
 
+    /**
+     * ResultPageElement constructor
+     * 
+     * @param {*} id Image ID of element
+     * @param {*} imageUrl URL of image
+     * @param {*} resultPage Reference to the results page that owns this element
+     */
     constructor(id, imageUrl, resultPage){
         super();
         this.id = id;
@@ -96,6 +103,9 @@ export class ResultPageElement extends LitElement {
  */
 export class ResultsPage extends LitElement {
     
+    /**
+     * ResultsPage constructor
+     */
     constructor(){
         super();
         this.resultElements = [];
