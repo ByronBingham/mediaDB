@@ -14,6 +14,11 @@ export class TagEditor extends LitElement {
         this.controlBar = new TagConrolBar(this.tagList);
     }
 
+    /**
+     * Adds a tag element to the tag list
+     * 
+     * @param {*} element 
+     */
     addTagElement(element){
         this.tagElements.push(element);
         this.requestUpdate();
@@ -31,6 +36,12 @@ export class TagEditor extends LitElement {
  * Template control bar for the tag editor page
  */
 export class TagConrolBar extends LitElement {
+
+    /**
+     * TagControlBar constructor
+     * 
+     * @param {*} tagList List of tag names
+     */
     constructor(tagList){
         super();
 
@@ -106,6 +117,10 @@ export class TagConrolBar extends LitElement {
  * Template tag list for the tag editor page
  */
 export class TagList extends LitElement {
+
+    /**
+     * TagList constructor
+     */
     constructor(){
         super();
         this.tagElements = [];
@@ -113,8 +128,7 @@ export class TagList extends LitElement {
             if(response.ok){
                 return response.text();
         } else {
-            console.log("ERROR fetching page count for search\n" +
-            "Tags: " + searchString)
+            console.log("ERROR fetching all tags form DB");
         }}).then(this.initTagList.bind(this));
     }
 
@@ -162,6 +176,13 @@ export class TagList extends LitElement {
  * Template for an individual element of the tag list
  */
 export class TagElement extends LitElement {
+
+    /**
+     * TagElement constructor
+     * 
+     * @param {*} tagName Tag name
+     * @param {*} nsfw NSFW (true/false)
+     */
     constructor(tagName, nsfw){
         super();
         this.name = tagName;

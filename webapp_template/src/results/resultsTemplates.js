@@ -5,12 +5,20 @@
 import { LitElement, html } from 'lit-element';
 import { getAscDescCookie, getDoomScrollCookie, setAscDescCookie, setDoomScrollCookie, getTagsQueryString, getUrlParam } from '../util';
 import { doSearch } from './resultsPage.js';
+import { TagInput } from '../globalTemplates';
 
 /**
  * Template for an individual page result
  */
 export class ResultPageElement extends LitElement {
 
+    /**
+     * ResultPageElement constructor
+     * 
+     * @param {*} id Image ID of element
+     * @param {*} imageUrl URL of image
+     * @param {*} resultPage Reference to the results page that owns this element
+     */
     constructor(id, imageUrl, resultPage){
         super();
         this.id = id;
@@ -95,6 +103,9 @@ export class ResultPageElement extends LitElement {
  */
 export class ResultsPage extends LitElement {
     
+    /**
+     * ResultsPage constructor
+     */
     constructor(){
         super();
         this.resultElements = [];
@@ -104,6 +115,7 @@ export class ResultsPage extends LitElement {
         this.doomScrollButtonText = (getDoomScrollCookie())?"Mode: Doomscroll":"Mode: Page";
         this.ascDescButtonText = (getAscDescCookie())?"Sort Asc":"Sort Desc";
         this.widthValue = "";
+        this.tagInput = new TagInput(this.submitTags, this, "Add Tags", false);
         if(getUrlParam("min_width") !== undefined){
             this.widthValue = getUrlParam("min_width");
         }
@@ -170,7 +182,7 @@ export class ResultsPage extends LitElement {
      * @param {*} event Submit event from tags form
      * @returns 
      */
-    submitTags(event){
+    submitTags(tagsList){
         // Get selected ids
         let ids = [];
         this.resultElements.forEach(element => {
@@ -181,13 +193,11 @@ export class ResultsPage extends LitElement {
         let idsString = ids.join(",");
 
         // Get list of tags
-        let tagString = this.shadowRoot.getElementById("tag-list").value;
-        let tagList = tagString.replaceAll(" ", ",");
+        let tagList = tagsList.join(",");
 
         fetch(`${apiAddr}/images/add_tags?table_name=${dbTableName}&id=${idsString}&tag_names=${tagList}`).then((response) => {
             if(response.ok){
                 console.log("Successfully mass-added tags to images");
-                this.shadowRoot.getElementById("tag-list").value = "";
                 this.resultElements.forEach(element => {
                     element.stopEdittingImage();
                 });
@@ -197,10 +207,6 @@ export class ResultsPage extends LitElement {
         });
 
         this.requestUpdate();
-        
-        // One or both of these prevents the form from refreshing the page...
-        event.preventDefault();
-        return false;
     }
 
     /**
@@ -278,10 +284,7 @@ export class ResultsPage extends LitElement {
             <link rel="stylesheet" href="template.css">
             <div class="results-edit-toggle">
                 <button @click=${this.toggleEditing}>Close Editor</button>
-                <form @submit="${this.submitTags}">
-                    <input type="text" id="tag-list">
-                    <input name="commit" type="submit" value="Submit">
-                </form>
+                ${this.tagInput}
                 <button @click=${this.toggleDoomScroll} style="align: right;">${this.doomScrollButtonText}</button>
             </div>
             <div class="image_flex" id="result-list" @scroll=${this.doScroll}>

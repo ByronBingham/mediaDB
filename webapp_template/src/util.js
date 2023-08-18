@@ -140,3 +140,21 @@ export function getCookie(cname) {
     }
     return "";
 }
+
+/**
+ * Gets a list of all tags in this GUI's DB tag table
+ * 
+ * @returns List of tag names
+ */
+export async function getListOfAllTags(){
+    let tagList = [];
+
+    let response = await fetch(`${apiAddr}/tags/get_all_tags`);
+    let text = await response.text();
+    text = text.replaceAll("\\", "\\\\");
+    let data = JSON.parse(text);
+    data.forEach(tag => {
+        tagList.push(tag["tag_name"]);
+    });
+    return tagList;
+}
