@@ -3,7 +3,7 @@
  */
 
 import { LitElement, html } from 'lit-element';
-import { getExtraUrlParamQueries, getListOfAllTags, getNswfCookie, getUrlParam, setNswfCookie } from './util';
+import { getExtraUrlParamQueries, getListOfAllTags, getNswfCookie, getUrlParam, setNswfCookie, getAppBaseUrl } from './util';
 
 /**
  * Template search bar
@@ -53,19 +53,15 @@ export class TopBar extends LitElement {
     }
 
     /**
-     * Go to the home page
-     */
-    goToHome(){
-        window.location=`/${webapp_name}`;
-    }
-
-    /**
      * Toggles the nsfw value
      */
     toggle(){
         let checkbox = this.shadowRoot.getElementById("nsfw-check");
-        this.nswf = checkbox.checked;
-        setNswfCookie(this.nswf);
+        if(this.nswf != checkbox.checked) {
+            this.nswf = checkbox.checked;
+            setNswfCookie(this.nswf);
+            location.reload();
+        }
     }
 
     /**
@@ -77,10 +73,11 @@ export class TopBar extends LitElement {
     }
 
     render(){
+        let url = getAppBaseUrl();
         return html`<link rel="stylesheet" href="template.css">
                     <div class="top-bar">
                         <table><tr>
-                            <td><p @click=${this.goToHome}>${webapp_long_name}</p></td>
+                            <td><a href="${url}" class="no-underline-link"><p>${webapp_long_name}</p></a></td>
                             <td><search-bar></search-bar></td>
                             <td style="width: 5vw; padding-left: 2vw;" @click=${this.unhideNsfw}>
                                 <div>
@@ -163,7 +160,7 @@ export class PageSelector extends LitElement {
 
         let extraQueriesString = getExtraUrlParamQueries();
         let nsfw = getNswfCookie();
-        fetch(`${apiAddr}/search_images/by_tag/page/count?table_name=${dbTableName}&tags=${searchString}&results_per_page=${default_images_per_page}&include_nsfw=${nsfw}&${extraQueriesString}`).then((response) =>{
+        fetch(`${api_addr}/search_images/by_tag/page/count?table_name=${db_table_name}&tags=${searchString}&results_per_page=${default_images_per_page}&include_nsfw=${nsfw}&${extraQueriesString}`).then((response) =>{
             if(response.ok){
                 return response.json();
             } else {

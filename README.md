@@ -75,12 +75,12 @@ There are two variables that are meant to be edited: `accent-color-primary` and 
 ##### Settings.js
 
 Here is a list the properties contained in `settings.js`. You must fill out this file before starting Docker or you will get errors:
- - `dbTableName`: This should be the name of the image DB table you want the webapp to pull from. This should match a table name from your `db_config.json`.
+ - `db_table_name`: This should be the name of the image DB table you want the webapp to pull from. This should match a table name from your `db_config.json`.
  - `default_images_per_page`: Number of images shown per page.
  - `webapp_name`: Short name of the webapp.
  - `webapp_long_name`: Long name of the webapp.
- - `serverAddr`: This address should point to the tomcat server's address. This is the address you will use to access the webapp. Should include the port (default `8080`).
- - `apiAddr`: This address should point to the API server's address. The webapp uses this address to make requests to the database and filesystem. Should include the port (default `38001`).
+ - `server_addr`: This address should point to the tomcat server's address. This is the address you will use to access the webapp. Should include the port (default `8080`).
+ - `api_addr`: This address should point to the API server's address. The webapp uses this address to make requests to the database and filesystem. Should include the port (default `38001`).
  - `thumb_height`: Size of the images shown on the webapp.
 
 ### Compose File

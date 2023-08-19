@@ -4,6 +4,7 @@
 
 import { LitElement, html } from 'lit-element';
 import { TagInput } from '../globalTemplates';
+import { getAppBaseUrl } from '../util';
 
 /**
  * Template for the image viewer page
@@ -62,7 +63,7 @@ export class ImageTagConrolBar extends LitElement {
      */
     submitAddTagForm(tagList){
         tagList.forEach((tagName) =>{
-            fetch(`${apiAddr}/images/add_tag?table_name=${dbTableName}&id=${this.id}&tag_name=${tagName}`).then((response) => {
+            fetch(`${api_addr}/images/add_tag?table_name=${db_table_name}&id=${this.id}&tag_name=${tagName}`).then((response) => {
                 if(response.ok){
                     this.imageTagList.addTagElement({"tag_name": tagName, "nsfw": false});
                 } else {
@@ -210,17 +211,11 @@ export class ImageTag extends LitElement {
         return this.name;
     }
 
-    /**
-     * Seach for this tag
-     */
-    searchTag(){
-        window.location=`/${webapp_name}/resultsPage.html?tags=${this.name}`;
-    }
-
     render(){
+        let url = `${getAppBaseUrl()}resultsPage.html?tags=${this.name}`;
         return html`
         <link rel="stylesheet" href="template.css">
-        <p class="tag" @click=${this.searchTag}>${this.name}</p>`;
+        <a href="${url}" class="no-underline-link"><p class="tag">${this.name}</p></a>`;
     }
 }
 
@@ -258,7 +253,7 @@ export class EditTagElement extends LitElement {
      * Delete this tag from the viewed image
      */
     deleteTag(){
-        fetch(`${apiAddr}/images/delete_tag?table_name=${dbTableName}&id=${this.id}&tag_name=${this.name}`).then((response) => {
+        fetch(`${api_addr}/images/delete_tag?table_name=${db_table_name}&id=${this.id}&tag_name=${this.name}`).then((response) => {
             if(response.ok){
                 this.imageTagList.removeTag(this.name);
             } else {
