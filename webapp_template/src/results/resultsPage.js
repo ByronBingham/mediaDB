@@ -59,7 +59,7 @@ const handleSearchResponse = function(data){
         let id = obj["id"];
         let thumbHeight = thumb_height;
 
-        fetch(`${apiAddr}/images/get_thumbnail?table_name=${dbTableName}&id=${id}&thumb_height=${thumbHeight}`).then((response) =>{
+        fetch(`${api_addr}/images/get_thumbnail?table_name=${db_table_name}&id=${id}&thumb_height=${thumbHeight}`).then((response) =>{
             if(response.ok){
                 response.blob().then(handleThumbResponse.bind(null, id));
             } else {
@@ -83,7 +83,7 @@ const sendSearchRequest = function(tagsString, pageNum){
     
     let extraQueriesString = getExtraUrlParamQueries();
 
-    let requestString = `${apiAddr}/search_images/by_tag/page?table_name=${dbTableName}&tags=${tagsString}&page_num=${pageNum}&results_per_page=${default_images_per_page}` +
+    let requestString = `${api_addr}/search_images/by_tag/page?table_name=${db_table_name}&tags=${tagsString}&page_num=${pageNum}&results_per_page=${default_images_per_page}` +
     `&include_thumb=false&include_nsfw=${nsfw}&asc_desc=${getAscDescCookie()}&${extraQueriesString}`;
 
     // send request

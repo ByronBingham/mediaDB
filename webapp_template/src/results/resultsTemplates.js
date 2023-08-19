@@ -30,13 +30,6 @@ export class ResultPageElement extends LitElement {
     }
 
     /**
-     * Open image veiwer for this image
-     */
-    openImage(){
-        window.location = `/${webapp_name}/imagePage.html?id=${this.id}`;
-    }
-
-    /**
      * Show edting elements
      */
     editImage(){
@@ -88,10 +81,11 @@ export class ResultPageElement extends LitElement {
                 </div>
             </div>`;
         } else {
+            let url = `/${webapp_name}/imagePage.html?id=${this.id}`;
             return html`
             <link rel="stylesheet" href="template.css">
             <div class="image_flex_item">
-                <img src="${this.imageUrl}" alt="image"  @click=${this.openImage}/>
+                <a href="${url}"><img src="${this.imageUrl}" alt="image"/></a>
             </div>`;
         }
     }
@@ -195,7 +189,7 @@ export class ResultsPage extends LitElement {
         // Get list of tags
         let tagList = tagsList.join(",");
 
-        fetch(`${apiAddr}/images/add_tags?table_name=${dbTableName}&id=${idsString}&tag_names=${tagList}`).then((response) => {
+        fetch(`${api_addr}/images/add_tags?table_name=${db_table_name}&id=${idsString}&tag_names=${tagList}`).then((response) => {
             if(response.ok){
                 console.log("Successfully mass-added tags to images");
                 this.resultElements.forEach(element => {

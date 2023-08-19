@@ -149,7 +149,7 @@ export function getCookie(cname) {
 export async function getListOfAllTags(){
     let tagList = [];
 
-    let response = await fetch(`${apiAddr}/tags/get_all_tags`);
+    let response = await fetch(`${api_addr}/tags/get_all_tags`);
     let text = await response.text();
     text = text.replaceAll("\\", "\\\\");
     let data = JSON.parse(text);
@@ -157,4 +157,14 @@ export async function getListOfAllTags(){
         tagList.push(tag["tag_name"]);
     });
     return tagList;
+}
+
+/**
+ * Gets the base url of this app
+ * server_addr + "/" + webapp_name + "/";
+ * 
+ * @returns 
+ */
+export function getAppBaseUrl(){
+    return server_addr + "/" + webapp_name + "/";
 }

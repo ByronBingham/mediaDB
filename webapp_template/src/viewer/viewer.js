@@ -54,7 +54,7 @@ const handleTagsResponse = function(data){
  */
 const sendImageRequest = function(id){    
     // query API
-    let requestString = `${apiAddr}/images/get_image_full?table_name=${dbTableName}&id=${id}`;
+    let requestString = `${api_addr}/images/get_image_full?table_name=${db_table_name}&id=${id}`;
 
     // send request
     fetch(requestString).then((response) =>{
@@ -71,7 +71,7 @@ const sendImageRequest = function(id){
  */
 const sendTagsRequest = function(id){
     // query API
-    let requestString = `${apiAddr}/images/get_tags?table_name=${dbTableName}&id=${id}`;
+    let requestString = `${api_addr}/images/get_tags?table_name=${db_table_name}&id=${id}`;
 
     // send request
     fetch(requestString).then((response) =>{
