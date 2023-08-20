@@ -19,9 +19,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Optional;
+import java.util.*;
 import java.util.List;
 
 /**
@@ -68,7 +66,7 @@ public class ImageController {
         String schemaName = ApiSettings.getSchemaName();
         String tbNameFull = schemaName + "." + tbName;
 
-        String fullQuery = createSearchQuery(tbNameFull, tbName, schemaName, tags, pageNum, resultsPerPage, includeThumbVal, includeNsfwVal,
+        String fullQuery = createSearchQuery(tbNameFull, tbName, schemaName, tags, pageNum, resultsPerPage, includeNsfwVal,
                 minWidth, minHeight, aspectRatio, ascending, sortBy) + ";";
 
         String jsonOut = "[";
@@ -140,8 +138,8 @@ public class ImageController {
         String tagTableName = schemaName + "." + "tags";
         boolean ascending = ascDesc.orElse(false);
 
-        String query = "SELECT COUNT(*) AS itemCount FROM (" + createSearchQuery(tbNameFull, tbName, schemaName, tags, -1, resultsPerPage, false, includeNsfwVal,
-                minWidth, minHeight, aspectRatio, ascending, sortBy) + ") AS sq;";
+        String query = "SELECT COUNT(*) AS itemCount FROM (" + createSearchQuery(tbNameFull, tbName, schemaName, tags,
+                -1, resultsPerPage, includeNsfwVal, minWidth, minHeight, aspectRatio, ascending, sortBy) + ") AS sq;";
 
         String jsonOut = "";
         try {
@@ -732,100 +730,140 @@ public class ImageController {
      * <p>
      * NOTE: does not include a terminating semicolon so that this query can be used as a sub-query
      *
-     * @param tbNameFull      Full table name
-     * @param tbName          Table name
-     * @param schemaName      Schema name
-     * @param tags            List of tags
-     * @param pageNum         Page number ( use -1 if you want all results)
-     * @param resultsPerPage  Number of results per page
-     * @param includeThumbVal Whether you want the file path to get a thumbnail
-     * @param includeNsfwVal  Whether to include NSFW results
-     * @param minWidth        Min width
-     * @param minHeight       Min height
-     * @param aspectRatio     Aspect ratio
-     * @param ascending       Asc/Desc
-     * @param sortBy          Sort by string
+     * @param tbNameFull     Full table name
+     * @param tbName         Table name
+     * @param schemaName     Schema name
+     * @param inputTags      List of tags
+     * @param pageNum        Page number ( use -1 if you want all results)
+     * @param resultsPerPage Number of results per page
+     * @param includeNsfwVal Whether to include NSFW results
+     * @param minWidth       Min width
+     * @param minHeight      Min height
+     * @param aspectRatio    Aspect ratio
+     * @param ascending      Asc/Desc
+     * @param sortBy         Sort by string
      * @return SQL query to search for images in DB (no trailing ';')
      */
-    private String createSearchQuery(String tbNameFull, String tbName, String schemaName, String[] tags, int pageNum, int resultsPerPage, boolean includeThumbVal,
+    private String createSearchQuery(String tbNameFull, String tbName, String schemaName, String[] inputTags, int pageNum, int resultsPerPage,
                                      boolean includeNsfwVal, Optional<Integer> minWidth, Optional<Integer> minHeight,
                                      Optional<Double> aspectRatio, boolean ascending, Optional<String> sortBy) {
 
         String tagJoinTableName = schemaName + "." + tbName + "_tags_join";
         String tagTableName = schemaName + "." + "tags";
-        for (int i = 0; i < tags.length; i++) {
-            tags[i] = tags[i].replace("'", "''");
-        }
-        String tag_string = "'" + String.join("','", tags) + "'";
-        int numTags = tags.length;
-        String includePathString = "";
-
-        if (includeThumbVal) {
-            includePathString = ",a.file_path";
+        for (int i = 0; i < inputTags.length; i++) {
+            inputTags[i] = inputTags[i].replace("'", "''");
         }
 
-        // Secondary query if applicable
-        String secondaryQueryStart = "";
-        String secondaryQueryEnd = "";
-        String sortBySql = "ORDER BY ";
+        // Get excluded tags
+        ArrayList<String> excludeTags = new ArrayList<>();
+        for (int i = 0; i < inputTags.length; i++) {
+            if (inputTags[i].startsWith("-")) {
+                excludeTags.add(inputTags[i].replace("-", ""));
+            }
+        }
+        // Remove excluded tags from input tags
+        ArrayList<String> newTags = new ArrayList<>();
+        for (String tag : inputTags) {
+            if (!tag.startsWith("-")) {
+                newTags.add(tag);
+            }
+        }
+        String[] tags = newTags.toArray(String[]::new);
+
+        String excludeString = "'" + String.join("','", excludeTags.toArray(String[]::new)) + "'";
+        boolean excludingTags = excludeTags.size() > 0;
+
+        // Main query
+        String fullQuery = createBaseQuery(tbNameFull, tagJoinTableName, tagTableName, tags, includeNsfwVal, excludingTags);
+
+        // Filter query if applicable
         boolean hExists = minHeight.isPresent();
         boolean wExists = minWidth.isPresent();
         boolean arExists = aspectRatio.isPresent();
         boolean doSubQuery = hExists || wExists || arExists;
-        String noSubQueryString = (doSubQuery) ? "" : "a.";
-        String ascDescString = (ascending) ? "ASC " : "DESC ";
-        boolean doExtraSort = sortBy.isPresent();
-        switch ((sortBy.isPresent()) ? sortBy.get().toLowerCase() : "") {
-            case "height":
-                sortBySql += noSubQueryString + "resolution_height " + ascDescString;
-                break;
-            case "width":
-                sortBySql += noSubQueryString + "resolution_width " + ascDescString;
-                break;
-            case "file_size":
-                sortBySql += noSubQueryString + "file_size_bytes " + ascDescString;
-                break;
-            case "aspect_ratio":
-                sortBySql += noSubQueryString + "resolution_width * " + noSubQueryString + "resolution_height " + ascDescString;
-                break;
-        }
-        sortBySql += ((doExtraSort) ? "," : "") + " " + noSubQueryString + "id " + ascDescString;
+        String extraFilteringString = "";
 
+        // Need to create this subquery if either filtering or excluding tags
+        if(doSubQuery || excludingTags){
+            String filterSelectPrefix = (excludingTags) ? "s1.id" : "*";
+            fullQuery = "SELECT " + filterSelectPrefix + " FROM ( " + fullQuery + ") AS s1 ";
+        }
+
+        // Back to filtering stuff
         if (doSubQuery) {
-            List<String> subquerySelectionsList = new ArrayList<>();
-            secondaryQueryStart = "SELECT * FROM (";
-            secondaryQueryEnd = ") AS s1 WHERE ";
+            extraFilteringString = "WHERE ";
+
+
+            // Build filtering "WHERE" clause
             if (hExists) {
-                subquerySelectionsList.add("a.resolution_height");
-                secondaryQueryEnd += "resolution_height >= " + minHeight.get() + " ";
+                extraFilteringString += "resolution_height >= " + minHeight.get() + " ";
                 if (wExists) {
-                    secondaryQueryEnd += "AND ";
+                    extraFilteringString += "AND ";
                 }
             }
             if (wExists) {
-                subquerySelectionsList.add("a.resolution_width");
-                secondaryQueryEnd += "resolution_width >= " + minWidth.get() + " ";
+                extraFilteringString += "resolution_width >= " + minWidth.get() + " ";
                 if (arExists) {
-                    secondaryQueryEnd += "AND ";
+                    extraFilteringString += "AND ";
                 }
             }
             if (arExists) {
-                if (!subquerySelectionsList.contains("a.resolution_height")) {
-                    subquerySelectionsList.add("a.resolution_height");
-                }
-                if (!subquerySelectionsList.contains("a.resolution_width")) {
-                    subquerySelectionsList.add("a.resolution_width");
-                }
                 String sign = "=";
                 if (aspectRatio.get() > 1.0) {
                     sign = ">=";
                 } else if (aspectRatio.get() < 1.0) {
                     sign = "<=";
                 }
-                secondaryQueryEnd += "CAST(resolution_width AS FLOAT) / CAST(resolution_height AS FLOAT) " + sign + " " + aspectRatio.get() + " ";
+                extraFilteringString += "CAST(resolution_width AS FLOAT) / CAST(resolution_height AS FLOAT) " + sign + " " + aspectRatio.get() + " ";
             }
         }
 
+        // Tertiary query if applicable
+        if (excludingTags) {
+            fullQuery = "SELECT * FROM (" + fullQuery;
+            fullQuery += "JOIN " + tagJoinTableName + " xat ON (s1.id) = (xat.id)" +
+                    "GROUP BY (s1.id)" +
+                    "HAVING MAX(CASE WHEN xat.tag_name IN ("+ excludeString + ") THEN 1 ELSE 0 END) = 0";
+            fullQuery += ") AS s2 JOIN " + tbNameFull + " j ON s2.id = j.id ";
+        }
+
+        // Add extra filtering to end of query
+        fullQuery += extraFilteringString;
+
+        // Add Sorting to end of query
+        String sortBySql = "ORDER BY ";
+        String ascDescString = (ascending) ? "ASC " : "DESC ";
+        String sortByPrefix = (excludingTags)? "j." : "";
+        switch ((sortBy.isPresent()) ? sortBy.get().toLowerCase() : "") {
+            case "height":
+                sortBySql += sortByPrefix + "resolution_height " + ascDescString;
+                break;
+            case "width":
+                sortBySql += sortByPrefix + "resolution_width " + ascDescString;
+                break;
+            case "file_size":
+                sortBySql += sortByPrefix + "file_size_bytes " + ascDescString;
+                break;
+            case "aspect_ratio":
+                sortBySql += sortByPrefix + "resolution_width * " + sortByPrefix + "resolution_height " + ascDescString;
+                break;
+        }
+        sortBySql += ((sortBy.isPresent()) ? "," : "") + " " + sortByPrefix + "id " + ascDescString;
+
+        fullQuery += sortBySql;
+
+        // End of main query
+        if (pageNum >= 0) {
+            fullQuery += " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage;
+        }
+
+        return fullQuery;
+    }
+
+    private String createBaseQuery(String tbNameFull, String tagJoinTableName, String tagTableName, String[] tags, boolean includeNsfwVal, boolean excludingTags) {
+
+        int numTags = tags.length;
+        String tagString = "'" + String.join("','", tags) + "'";
         String nsfwString1 = "";
         String nsfwString2 = "";
         String nsfwJoinString = "";
@@ -834,9 +872,13 @@ public class ImageController {
             nsfwString1 += "t.nsfw = TRUE ";
             nsfwString2 += "MAX(CASE t.nsfw WHEN TRUE THEN 1 ELSE 0 END) = 0 ";
         }
+        String includeNonExclude = "";
 
-        // Start of main query
-        String mainQuery = "SELECT a.id,a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes " + includePathString +
+        if (!excludingTags) {
+            includeNonExclude = ",a.md5,a.filename,a.resolution_width,a.resolution_height,a.file_size_bytes";
+        }
+
+        String query = "SELECT a.id" + includeNonExclude +
                 " FROM " + tbNameFull + " a JOIN " + tagJoinTableName + " at ON (a.id) = (at.id) " +
                 nsfwJoinString;
 
@@ -845,25 +887,19 @@ public class ImageController {
             if (!includeNsfwVal) {
                 nsfwString2 = "HAVING " + nsfwString2;
             }
-            mainQuery += " WHERE NOT a.file_path IS NULL " +
+            query += " WHERE NOT a.file_path IS NULL " +
                     "GROUP BY (a.id)" + nsfwString2;
         } else {
             if (!includeNsfwVal) {
                 nsfwString1 = "OR  " + nsfwString1;
                 nsfwString2 = " AND " + nsfwString2;
             }
-            mainQuery += "WHERE NOT a.file_path IS NULL AND at.tag_name IN (" + tag_string + ") " + nsfwString1 +
+            query += "WHERE NOT a.file_path IS NULL AND at.tag_name IN (" + tagString + ") " + nsfwString1 +
                     "GROUP BY (a.id) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2;
         }
 
-        String fullQuery = secondaryQueryStart + " " + mainQuery + " " + secondaryQueryEnd;
-
-        // End of main query
-        fullQuery += sortBySql;
-        if (pageNum >= 0) {
-            fullQuery += " OFFSET " + pageNum * resultsPerPage + " LIMIT " + resultsPerPage;
-        }
-
-        return fullQuery;
+        return query;
     }
+
+    //private String
 }
