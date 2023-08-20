@@ -860,8 +860,19 @@ public class ImageController {
         return fullQuery;
     }
 
+    /**
+     * Creates the base query that would run with minimum parameters, but makes changes that are necessary if there are
+     * more parameters specified
+     *
+     * @param tbNameFull Full tablename ( [schema].[table] )
+     * @param tagJoinTableName Full table name for the tag join table
+     * @param tagTableName Name only of tag table
+     * @param tags list of tags to include in search
+     * @param includeNsfwVal True/False include NSFW
+     * @param excludingTags This should be true if the subsequent queries will account for excluding tags
+     * @return Base query as a String
+     */
     private String createBaseQuery(String tbNameFull, String tagJoinTableName, String tagTableName, String[] tags, boolean includeNsfwVal, boolean excludingTags) {
-
         int numTags = tags.length;
         String tagString = "'" + String.join("','", tags) + "'";
         String nsfwString1 = "";
@@ -900,6 +911,4 @@ public class ImageController {
 
         return query;
     }
-
-    //private String
 }
