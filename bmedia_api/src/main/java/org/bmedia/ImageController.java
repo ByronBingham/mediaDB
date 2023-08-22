@@ -906,7 +906,7 @@ public class ImageController {
                 nsfwString2 = " AND " + nsfwString2;
             }
             query += "WHERE NOT a.file_path IS NULL AND at.tag_name IN (" + tagString + ") " + nsfwString1 +
-                    "GROUP BY (a.id) HAVING COUNT(at.tag_name) >= " + numTags + nsfwString2;
+                    "GROUP BY (a.id) HAVING COUNT(at.tag_name) >= " + numTags + " " + nsfwString2;
         }
 
         return query;

@@ -55,6 +55,15 @@ export class ResultPageElement extends LitElement {
     }
 
     /**
+     * Set set to unselected
+     */
+    clearSelected(){
+        this.selected = false;
+        this.shadowRoot.getElementById("selected-checkbox").checked = false;
+        this.requestUpdate();
+    }
+
+    /**
      * Update whether this image is selected for mass tag edting
      */
     setSelected(){
@@ -193,7 +202,7 @@ export class ResultsPage extends LitElement {
             if(response.ok){
                 console.log("Successfully mass-added tags to images");
                 this.resultElements.forEach(element => {
-                    element.stopEdittingImage();
+                    element.clearSelected();
                 });
             } else {
                 console.log("ERROR adding tags to images");
