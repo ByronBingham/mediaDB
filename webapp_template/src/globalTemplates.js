@@ -312,8 +312,6 @@ export class TagInput extends LitElement {
         for(const tag of tagIter){
             filteredTags.push(tag);
         }
-
-        console.log(filteredTags);
         this.submitCallback(filteredTags);
 
         this.clearTags();
