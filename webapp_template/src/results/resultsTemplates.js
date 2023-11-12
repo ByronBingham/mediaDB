@@ -236,12 +236,15 @@ export class ResultsPage extends LitElement {
      */
     doScroll(){
         // Only handle scrolling if doomscrolling
+        console.log(this.loadingElement);
         if(getDoomScrollCookie() && !this.loadingElement){
             let scrollPosition = this.shadowRoot.getElementById("result-list").scrollTop;
             let scrollHeight = this.shadowRoot.getElementById("result-list").scrollHeight;
 
             // If close enough to bottom, load more images
             // TODO: make the threshold number below a variable
+            console.log("Total height: " + scrollHeight - this.shadowRoot.getElementById("result-list").offsetHeight - 500 && !this.loadingElement + 
+            "\nScroll height: " + scrollPosition);
             if(scrollPosition > scrollHeight - this.shadowRoot.getElementById("result-list").offsetHeight - 500 && !this.loadingElement){
                 this.loadingElement += default_images_per_page;
                 doSearch(this.pageOffset);

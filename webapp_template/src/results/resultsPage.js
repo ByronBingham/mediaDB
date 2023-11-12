@@ -38,7 +38,7 @@ export const doSearch = function(pageOffset){
 }
 
 /**
- * Handes the reponse from the API for a thumbnail
+ * Handles the reponse from the API for a thumbnail
  * 
  * @param {*} data 
  */
@@ -65,6 +65,7 @@ const handleSearchResponse = function(data){
             } else {
                 console.log("ERROR fetching thumbnail for image\n" +
                 "ID: " + id);
+                resultPage.decrementLoading();
             }
         });
 
