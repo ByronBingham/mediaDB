@@ -37,6 +37,11 @@ tag_name VARCHAR(255),\
 nsfw BOOLEAN,\
 PRIMARY KEY (tag_name),\
 UNIQUE (tag_name));\n\n"
+    out += "CREATE TABLE " + config_data["database_schema"] + ".collections(\
+collection_name VARCHAR(255),\
+nsfw BOOLEAN,\
+PRIMARY KEY (collection_name),\
+UNIQUE (collection_name));\n\n"
     
     out += "-- Create User-specified Tables\n"
     for table_spec in config_data["tables"]:
@@ -59,6 +64,31 @@ tag_name VARCHAR(255),\
 FOREIGN KEY (id) REFERENCES " + config_data["database_schema"] + "." + table_spec["table_name"] + "(id),\
 FOREIGN KEY (tag_name) REFERENCES " + config_data["database_schema"] + ".tags(tag_name),\
 UNIQUE (id, tag_name));\n\n"
+        elif table_spec["table_type"] == "music":
+            out += "CREATE TABLE " + config_data["database_schema"] + "." + table_spec["table_name"] + "(\
+id BIGSERIAL UNIQUE,\
+md5 VARCHAR(32),\
+filename VARCHAR(255),\
+file_path VARCHAR(255) UNIQUE,\
+)"
+            out += "CREATE INDEX " + table_spec["table_name"] + "_index ON " + config_data["database_schema"] + "." + table_spec["table_name"] + "(md5);\n"
+            out += "CREATE TABLE " + config_data["database_schema"] + "." + table_spec["table_name"] + "_tags_join(\
+id BIGINT,\
+tag_name VARCHAR(255),\
+FOREIGN KEY (id) REFERENCES " + config_data["database_schema"] + "." + table_spec["table_name"] + "(id),\
+FOREIGN KEY (tag_name) REFERENCES " + config_data["database_schema"] + ".tags(tag_name),\
+UNIQUE (id, tag_name));\n\n"
+            out += "CREATE TABLE " + config_data["database_schema"] + "." + table_spec["table_name"] + "_playlists(\
+playlist_name VARCHAR(255),\
+PRIMARY KEY (playlist_name),\
+UNIQUE (playlist_name));\n\n"
+            out += "CREATE TABLE " + config_data["database_schema"] + "." + table_spec["table_name"] + "_playlists_join(\
+id BIGINT,\
+tag_name VARCHAR(255),\
+FOREIGN KEY (id) REFERENCES " + config_data["database_schema"] + "." + table_spec["table_name"] + "(id),\
+FOREIGN KEY (playlist_name) REFERENCES " + config_data["database_schema"] + ".tags(tag_name),\
+UNIQUE (id, tag_name));\n\n"
+            
         else:
             print("Table type " + table_spec["table_type"] + " is invalid or not yet implemented")
             continue
@@ -76,6 +106,9 @@ UNIQUE (id, tag_name));\n\n"
 
 
 if __name__ == "__main__":
+    if len(sys.argv) < 3:
+        print("Missing parameters. Usage: `build_db [schema path] [config path]`")
+        exit()
     print("Generating SQL script")
     schema_path = Path(sys.argv[1])
     config_path = Path(sys.argv[2])
