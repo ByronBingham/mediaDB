@@ -8,59 +8,17 @@ import org.bmedia.tagger.ImageTagger;
 import org.bmedia.tagger.ImageWithTags;
 
 import java.nio.file.Path;
-import java.nio.file.StandardWatchEventKinds;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * Implementation of {@link MediaProcessor} for processing images
  */
 public class ImageProcessor extends MediaProcessor<String> {
-
-    // Private variables
-    // TODO: at least some of these could probably be part of the abstract class
-
-
-
-    /**
-     * Implementation of {@link TimerTask} used to intermittently check the queue and do processing if there are actions
-     * in the queue
-     */
-    private class TimedUpdate extends TimerTask {
-
-        ImageProcessor imageProcessor;
-
-        /**
-         * Main constructor
-         *
-         * @param imageProcessor {@link ImageProcessor}. Should just be set to the instance that creates this TimedUpdate
-         */
-        public TimedUpdate(ImageProcessor imageProcessor) {
-            this.imageProcessor = imageProcessor;
-        }
-
-        /**
-         * Main timed function
-         */
-        @Override
-        public void run() {
-            if (!this.imageProcessor.getProcessing()) {
-                System.out.println("INFO: Timed update called");
-                this.imageProcessor.doAtomicProcessing();
-            }
-        }
-    }
-
-    private TimedUpdate timedUpdate;
-    private Timer timer = new Timer();
-
-    private long processingIntervalSeconds;
 
     /**
      * Main constructor
@@ -69,42 +27,14 @@ public class ImageProcessor extends MediaProcessor<String> {
      * @param processingIntervalSeconds How often to check for tasking (in seconds)
      */
     public ImageProcessor(ProcessingGroup group, long processingIntervalSeconds) {
-        super(group);
-        this.processingIntervalSeconds = processingIntervalSeconds;
-        timedUpdate = new TimedUpdate(this);
-        timer.schedule(timedUpdate, processingIntervalSeconds * 1000, processingIntervalSeconds * 1000);
+        super(group, processingIntervalSeconds);
     }
 
     /**
      * The actual image processing is done here. There should only be one instance of this function running at one time
      */
     public void atomicProcessingImplementation() {
-        if (this.getProcessing()) {
-            return;
-        }
-        this.setProcessing(true);
-        // do processing
-        ArrayList<String> addFiles = new ArrayList<>();
-        ArrayList<String> deleteFiles = new ArrayList<>();
-        for (QueueAction<String> action : this.getDataChunk()) {
-            if (action.getActionType().equals(StandardWatchEventKinds.ENTRY_CREATE.name())) {
-                addFiles.add(action.getData());
-            } else if (action.getActionType().equals(StandardWatchEventKinds.ENTRY_DELETE.name())) {
-                deleteFiles.add(action.getData());
-            } else {
-                System.out.println("WARNING: Queue action type \"" + action.getActionType() + "\" is not valid " +
-                        "or is not implemented. Skipping action");
-            }
-        }
 
-        System.out.println("INFO: Adding " + addFiles.size() + " files to the database");
-        addImagesToDB(addFiles);
-        System.out.println("INFO: Deleting " + deleteFiles.size() + " files from the database");
-        deleteImagesFromDB(deleteFiles);
-
-        this.clearDataChunk();
-
-        this.setProcessing(false);
     }
 
     /**
@@ -112,7 +42,8 @@ public class ImageProcessor extends MediaProcessor<String> {
      *
      * @param pathStrings List of images to process and add to the DB
      */
-    private void addImagesToDB(ArrayList<String> pathStrings) {
+    @Override
+    protected void addFilesToDB(ArrayList<String> pathStrings) {
         if (pathStrings.size() == 0) {
             System.out.println("INFO: No paths provided to add");
             return;
@@ -174,8 +105,9 @@ public class ImageProcessor extends MediaProcessor<String> {
         // Add image data to DB
         query += String.join(",", valueArr.toArray(new String[0])) + "ON CONFLICT (file_path) DO NOTHING;";
         try {
-            Statement statement = Main.getDbconn().createStatement();
-            statement.executeUpdate(query);
+            try (Statement statement = Main.getDbconn().createStatement()) {
+                statement.executeUpdate(query);
+            }
         } catch (SQLException e) {
             System.out.println("ERROR: SQL error while adding images to database");
             return;
@@ -263,8 +195,10 @@ public class ImageProcessor extends MediaProcessor<String> {
 
         String idQuery = "SELECT (id) FROM " + group.getFullTableName() + " WHERE md5='" + md5 + "' AND filename='" + filename + "'";
         try {
-            Statement statement = Main.getDbconn().createStatement();
-            ResultSet result = statement.executeQuery(idQuery);
+            ResultSet result;
+            try (Statement statement = Main.getDbconn().createStatement()) {
+                result = statement.executeQuery(idQuery);
+            }
 
             if (!result.next()) {
                 System.out.println("WARNING: ID index not found");
@@ -285,10 +219,13 @@ public class ImageProcessor extends MediaProcessor<String> {
      * "Deletes" images from the DB by setting the paths of any images with one of the provided paths to null. Setting
      * paths to null allows the DB to keep tag and any other metadata in case the image is re-added to the DB (or if it
      * was just moved, etc.)
+     * <p>
+     * TODO: If I ever get jfif/webp support added, generalize this functionality into the abstract class
      *
      * @param pathStrings List of paths (relative to fileshare base dir) to remove from the DB
      */
-    private void deleteImagesFromDB(ArrayList<String> pathStrings) {
+    @Override
+    protected void deleteFilesFromDB(ArrayList<String> pathStrings) {
         if (pathStrings.size() == 0) {
             System.out.println("INFO: No paths provided to delete");
             return;
@@ -296,27 +233,28 @@ public class ImageProcessor extends MediaProcessor<String> {
 
         String baseQuery = "UPDATE " + group.getFullTableName() + " SET file_path=NULL WHERE file_path=?;";
         try {
-            PreparedStatement statement = Main.getDbconn().prepareStatement(baseQuery);
-            for (String pathString : pathStrings) {
+            try (PreparedStatement statement = Main.getDbconn().prepareStatement(baseQuery)) {
+                for (String pathString : pathStrings) {
 
-                // These file types shouldn't be in the DB to begin with, so just ignore
-                if (group.isJfifWebmToJpg() &&
-                        (FilenameUtils.getExtension(pathString).equals("jfif") ||
-                                FilenameUtils.getExtension(pathString).equals("webp"))) {
-                    continue;
+                    // These file types shouldn't be in the DB to begin with, so just ignore
+                    if (group.isJfifWebmToJpg() &&
+                            (FilenameUtils.getExtension(pathString).equals("jfif") ||
+                                    FilenameUtils.getExtension(pathString).equals("webp"))) {
+                        continue;
+                    }
+                    String relPath = IngesterConfig.getPathRelativeToShare(pathString);
+                    if (relPath == null) {
+                        System.out.println("WARNING: Could not get share-relative path for \"" + pathString + "\"");
+                        continue;
+                    }
+                    String path = Utils.toLinuxPath(relPath);
+                    if (path == null) {
+                        System.out.println("WARNING: Could not get Linux path for \"" + IngesterConfig.getPathRelativeToShare(pathString) + "\"");
+                        continue;
+                    }
+                    statement.setString(1, path);
+                    statement.executeUpdate();
                 }
-                String relPath = IngesterConfig.getPathRelativeToShare(pathString);
-                if (relPath == null) {
-                    System.out.println("WARNING: Could not get share-relative path for \"" + pathString + "\"");
-                    continue;
-                }
-                String path = Utils.toLinuxPath(relPath);
-                if (path == null) {
-                    System.out.println("WARNING: Could not get Linux path for \"" + IngesterConfig.getPathRelativeToShare(pathString) + "\"");
-                    continue;
-                }
-                statement.setString(1, path);
-                statement.executeUpdate();
             }
         } catch (SQLException e) {
             System.out.println("ERROR: SQL error");
