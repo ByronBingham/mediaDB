@@ -1,6 +1,8 @@
 package org.bmedia.Processing;
 
+import java.nio.file.StandardWatchEventKinds;
 import java.util.ArrayList;
+import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -8,13 +10,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Generic class for processing various types of media. Implementations of this class should take in files, process them,
  * and add them to the DB
+ *
  * @param <T>
  */
 abstract public class MediaProcessor<T> extends Thread {
 
     // Private variables
-    private AtomicBoolean processing = new AtomicBoolean(false);
-    private ArrayList<QueueAction<T>> dataChunk = new ArrayList<>();
+    private final AtomicBoolean processing = new AtomicBoolean(false);
+    private final ArrayList<QueueAction<T>> dataChunk = new ArrayList<>();
 
     // Main queue used to store pending processing actions
     protected LinkedBlockingQueue<QueueAction<T>> actionQueue;
@@ -22,28 +25,19 @@ abstract public class MediaProcessor<T> extends Thread {
     protected boolean running = true;
 
     /**
-     * Main constructor
-     * @param group {@link ProcessingGroup} to process for
-     */
-    protected MediaProcessor(ProcessingGroup group) {
-        this.actionQueue = new LinkedBlockingQueue<>();
-        this.group = group;
-    }
-
-    /**
      * Implementation of {@link TimerTask} used to intermittently check the queue and do processing if there are actions
      * in the queue
      */
     private class TimedUpdate extends TimerTask {
 
-        MediaProcessor mediaProcessor;
+        MediaProcessor<T> mediaProcessor;
 
         /**
          * Main constructor
          *
-         * @param mediaProcessor {@link ImageProcessor}. Should just be set to the instance that creates this TimedUpdate
+         * @param mediaProcessor {@link MediaProcessor}. Should just be set to the instance that creates this TimedUpdate
          */
-        public TimedUpdate(MediaProcessor mediaProcessor) {
+        public TimedUpdate(MediaProcessor<T> mediaProcessor) {
             this.mediaProcessor = mediaProcessor;
         }
 
@@ -57,6 +51,19 @@ abstract public class MediaProcessor<T> extends Thread {
                 this.mediaProcessor.doAtomicProcessing();
             }
         }
+    }
+
+    /**
+     * Main constructor
+     *
+     * @param group {@link ProcessingGroup} to process for
+     */
+    protected MediaProcessor(ProcessingGroup group, long processingIntervalSeconds) {
+        this.actionQueue = new LinkedBlockingQueue<>();
+        this.group = group;
+        TimedUpdate timedUpdate = new TimedUpdate(this);
+        Timer timer = new Timer();
+        timer.schedule(timedUpdate, processingIntervalSeconds * 1000, processingIntervalSeconds * 1000);
     }
 
     /**
@@ -80,7 +87,7 @@ abstract public class MediaProcessor<T> extends Thread {
     /**
      * The actual processing is done here. There should only be one instance of this function running at one time
      */
-    public final synchronized void doAtomicProcessing(){
+    public final synchronized void doAtomicProcessing() {
         int timesInterrupted = 0;
 
         // Should keep running indefinitely until explicitly stopped (interrupted)
@@ -112,14 +119,60 @@ abstract public class MediaProcessor<T> extends Thread {
     }
 
     /**
+     * Process images and add them into the DB
+     *
+     * @param pathStrings List of images to process and add to the DB
+     */
+    protected abstract void addFilesToDB(ArrayList<T> pathStrings);
+
+    /**
+     * Implementation should "delete" files from the DB by setting the paths of any files with one of the provided paths
+     * to null. Setting paths to null allows the DB to keep tag and any other metadata in case the file is re-added to
+     * the DB (or if it was just moved, etc.)
+     * <p>
+     * TODO: If I ever get jfif/webp support added, generalize the implementations into here instead of making abstract
+     *
+     * @param pathStrings List of paths (relative to file share base dir) to remove from the DB
+     */
+    protected abstract void deleteFilesFromDB(ArrayList<T> pathStrings);
+
+    /**
      * The child class should put its processing here. This will be called by {@link MediaProcessor}'s
      * {@code doAtomicProcessing()}
      */
-    protected abstract void atomicProcessingImplementation();
+    private void atomicProcessingImplementation() {
+        if (this.getProcessing()) {
+            return;
+        }
+        this.setProcessing(true);
+        // do processing
+        ArrayList<T> addFiles = new ArrayList<>();
+        ArrayList<T> deleteFiles = new ArrayList<>();
+        for (QueueAction<T> action : this.getDataChunk()) {
+            if (action.getActionType().equals(StandardWatchEventKinds.ENTRY_CREATE.name())) {
+                addFiles.add(action.getData());
+            } else if (action.getActionType().equals(StandardWatchEventKinds.ENTRY_DELETE.name())) {
+                deleteFiles.add(action.getData());
+            } else {
+                System.out.println("WARNING: Queue action type \"" + action.getActionType() + "\" is not valid " +
+                        "or is not implemented. Skipping action");
+            }
+        }
+
+        System.out.println("INFO: Adding " + addFiles.size() + " files to the database");
+        addFilesToDB(addFiles);
+        System.out.println("INFO: Deleting " + deleteFiles.size() + " files from the database");
+        deleteFilesFromDB(deleteFiles);
+
+        this.clearDataChunk();
+
+        this.setProcessing(false);
+    }
 
     /**
      * Add a processing action to the queue
-     * @param data Media/data to process
+     *
+     * @param data       Media/data to process
      * @param actionType Action (add/delete/etc.) that should be taken with the data
      */
     public void addAction(T data, String actionType) {
@@ -151,6 +204,7 @@ abstract public class MediaProcessor<T> extends Thread {
     public ArrayList<QueueAction<T>> getDataChunk() {
         return dataChunk;
     }
+
     public void clearDataChunk() {
         this.dataChunk.clear();
     }

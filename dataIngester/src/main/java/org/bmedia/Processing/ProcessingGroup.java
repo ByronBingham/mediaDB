@@ -39,7 +39,8 @@ public class ProcessingGroup {
      * NOTE: currently only the IMAGE type is implemented
      */
     enum MEDIA_TYPE {
-        IMAGE
+        IMAGE,
+        MUSIC
     }
 
     // Private variables
@@ -95,6 +96,9 @@ public class ProcessingGroup {
         switch (this.mediaType) {
             case IMAGE:
                 this.mediaProcessor = new ImageProcessor(this, 30); // TODO: make var
+                break;
+            case MUSIC:
+                this.mediaProcessor = new MusicProcessor(this, 30); // TODO: make var
                 break;
             default:
                 System.out.println("ERROR: \"" + this.mediaType + "\" is not a valid media type");
