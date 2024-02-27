@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Implementation of {@link MediaProcessor} for processing images
@@ -27,8 +26,7 @@ public class ImageProcessor extends MediaProcessor<String> {
     // Private variables
     // TODO: at least some of these could probably be part of the abstract class
 
-    ArrayList<QueueAction<String>> dataChunk = new ArrayList<>();
-    private AtomicBoolean processing = new AtomicBoolean(false);
+
 
     /**
      * Implementation of {@link TimerTask} used to intermittently check the queue and do processing if there are actions
@@ -78,52 +76,17 @@ public class ImageProcessor extends MediaProcessor<String> {
     }
 
     /**
-     * Main loop for this processor. Will keep running until explicitly interrupted
-     */
-    @Override
-    public void processData() {
-        int timesInterrupted = 0;
-
-        // Should keep running indefinitely until explicitly stopped (interrupted)
-        while (this.running) {
-            try {
-                // Skip if the timed function was called while this processor was already processing
-                if (this.getProcessing()) {
-                    Thread.sleep(1000); // TODO: make var
-                    continue;
-                }
-                dataChunk.add(this.actionQueue.take());
-            } catch (InterruptedException e) {
-                timesInterrupted++;
-                if (timesInterrupted > 10) {  // TODO: make this a variable
-                    System.out.println("ERROR: Processing thread interrupted too many times. Exiting thread");
-                    return;
-                } else {
-                    System.out.println("WARNING: processing thread interrupted");
-                    continue;
-                }
-            }
-
-            // do processing if there's enough data for a chunk or if a certain amount of time has passed
-            if (dataChunk.size() >= group.getChunkSize() && !this.getProcessing()) {
-                doAtomicProcessing();
-                timesInterrupted = 0;
-            }
-        }
-    }
-
-    /**
      * The actual image processing is done here. There should only be one instance of this function running at one time
      */
-    public synchronized void doAtomicProcessing() {
-        if (this.processing.get()) {
+    public void atomicProcessingImplementation() {
+        if (this.getProcessing()) {
             return;
         }
         this.setProcessing(true);
         // do processing
         ArrayList<String> addFiles = new ArrayList<>();
         ArrayList<String> deleteFiles = new ArrayList<>();
-        for (QueueAction<String> action : dataChunk) {
+        for (QueueAction<String> action : this.getDataChunk()) {
             if (action.getActionType().equals(StandardWatchEventKinds.ENTRY_CREATE.name())) {
                 addFiles.add(action.getData());
             } else if (action.getActionType().equals(StandardWatchEventKinds.ENTRY_DELETE.name())) {
@@ -139,26 +102,9 @@ public class ImageProcessor extends MediaProcessor<String> {
         System.out.println("INFO: Deleting " + deleteFiles.size() + " files from the database");
         deleteImagesFromDB(deleteFiles);
 
-        dataChunk.clear();
+        this.clearDataChunk();
+
         this.setProcessing(false);
-    }
-
-    /**
-     * Returns true if this instance is already processing images
-     *
-     * @return True if already processing
-     */
-    public boolean getProcessing() {
-        return processing.get();
-    }
-
-    /**
-     * Set the processing state of this processor
-     *
-     * @param processing True if this processor is about to start processing. False if this processor is done processing
-     */
-    public void setProcessing(boolean processing) {
-        this.processing.set(processing);
     }
 
     /**
