@@ -149,6 +149,7 @@ public class Main {
                     System.out.println("ERROR: no valid extensions were specified");
                     return;
                 }
+                // TODO: maybe find some way to consume/process these files as they are found instead of getting all of them and them processing
                 Collection<File> files = FileUtils.listFiles(new File(path), tmp, true);
                 for (File file : files) {
                     try {
@@ -163,6 +164,7 @@ public class Main {
             if (fsPaths.size() < 1) {
                 System.out.println("WARNING: No files found in the file system supplied in the config");
             }
+            //TODO: This is inefficient AF. Need to make more efficient. Could use tree or something
             for (String fsPath : fsPaths) {
                 if (!dbPaths.contains(fsPath)) {
                     // a file in the filesystem has not been added to the database yet

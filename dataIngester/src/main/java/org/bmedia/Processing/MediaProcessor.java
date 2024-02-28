@@ -85,9 +85,10 @@ abstract public class MediaProcessor<T> extends Thread {
     }
 
     /**
-     * The actual processing is done here. There should only be one instance of this function running at one time
+     * This contains control logic that will monitor the tasking queue of the processor and start processing
+     * if there are enough tasks or enough time has passed
      */
-    public final synchronized void doAtomicProcessing() {
+    public final synchronized void monitorQueue() {
         int timesInterrupted = 0;
 
         // Should keep running indefinitely until explicitly stopped (interrupted)
@@ -112,7 +113,7 @@ abstract public class MediaProcessor<T> extends Thread {
 
             // do processing if there's enough data for a chunk or if a certain amount of time has passed
             if (dataChunk.size() >= group.getChunkSize() && !this.getProcessing()) {
-                this.atomicProcessingImplementation();
+                this.doAtomicProcessing();
                 timesInterrupted = 0;
             }
         }
@@ -137,10 +138,9 @@ abstract public class MediaProcessor<T> extends Thread {
     protected abstract void deleteFilesFromDB(ArrayList<T> pathStrings);
 
     /**
-     * The child class should put its processing here. This will be called by {@link MediaProcessor}'s
-     * {@code doAtomicProcessing()}
+     * The actual processing is done here. There should only be one instance of this function running at one time
      */
-    private void atomicProcessingImplementation() {
+    private void doAtomicProcessing() {
         if (this.getProcessing()) {
             return;
         }
@@ -188,7 +188,7 @@ abstract public class MediaProcessor<T> extends Thread {
      */
     @Override
     public final void run() {
-        this.doAtomicProcessing();
+        this.monitorQueue();
     }
 
     /**
