@@ -17,7 +17,7 @@ public class MusicProcessor extends MediaProcessor<String> {
      * @param group {@link ProcessingGroup} to process for
      */
     protected MusicProcessor(ProcessingGroup group, long processingIntervalSeconds) {
-        super(group);
+        super(group, processingIntervalSeconds);
     }
 
     /**
@@ -40,10 +40,8 @@ public class MusicProcessor extends MediaProcessor<String> {
         String query = "INSERT INTO " + group.getFullTableName() + " (md5, file_path) VALUES ";
 
         query += String.join(",", valueArr.toArray(new String[0])) + "ON CONFLICT (file_path) DO NOTHING;";
-        try {
-            try (Statement statement = Main.getDbconn().createStatement()) {
-                statement.executeUpdate(query);
-            }
+        try (Statement statement = Main.getDbconn().createStatement()) {
+            statement.executeUpdate(query);
         } catch (SQLException e) {
             System.out.println("ERROR: SQL error while adding music files to database");
             return;
@@ -57,7 +55,8 @@ public class MusicProcessor extends MediaProcessor<String> {
      * was just moved, etc.)
      *
      * @param pathStrings List of paths (relative to fileshare base dir) to remove from the DB
-     */@Override
+     */
+    @Override
     protected void deleteFilesFromDB(ArrayList<String> pathStrings) {
         if (pathStrings.size() == 0) {
             System.out.println("INFO: No paths provided to delete");

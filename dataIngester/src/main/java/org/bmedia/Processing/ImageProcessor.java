@@ -104,10 +104,8 @@ public class ImageProcessor extends MediaProcessor<String> {
 
         // Add image data to DB
         query += String.join(",", valueArr.toArray(new String[0])) + "ON CONFLICT (file_path) DO NOTHING;";
-        try {
-            try (Statement statement = Main.getDbconn().createStatement()) {
-                statement.executeUpdate(query);
-            }
+        try (Statement statement = Main.getDbconn().createStatement()) {
+            statement.executeUpdate(query);
         } catch (SQLException e) {
             System.out.println("ERROR: SQL error while adding images to database");
             return;
@@ -194,19 +192,14 @@ public class ImageProcessor extends MediaProcessor<String> {
         long idIndex = -1;
 
         String idQuery = "SELECT (id) FROM " + group.getFullTableName() + " WHERE md5='" + md5 + "' AND filename='" + filename + "'";
-        try {
+        try (Statement statement = Main.getDbconn().createStatement()){
             ResultSet result;
-            try (Statement statement = Main.getDbconn().createStatement()) {
                 result = statement.executeQuery(idQuery);
-            }
-
-            if (!result.next()) {
-                System.out.println("WARNING: ID index not found");
-                return -1;
-            }
-
-            idIndex = result.getInt("id");
-
+                if (!result.next()) {
+                    System.out.println("WARNING: ID index not found");
+                    return -1;
+                }
+                idIndex = result.getInt("id");
         } catch (SQLException e) {
             System.out.println("WARNING: SQL ERROR when searching for id index");
             return -1;
