@@ -168,7 +168,7 @@ public class Main {
             for (String fsPath : fsPaths) {
                 if (!dbPaths.contains(fsPath)) {
                     // a file in the filesystem has not been added to the database yet
-                    group.addImageFile(fsPath);
+                    group.addFile(fsPath);
                 }
             }
         }

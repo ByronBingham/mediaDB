@@ -4,6 +4,7 @@ import org.bmedia.IngesterConfig;
 import org.bmedia.Main;
 import org.bmedia.Utils;
 
+import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -27,26 +28,26 @@ public class MusicProcessor extends MediaProcessor<String> {
      */
     @Override
     protected void addFilesToDB(ArrayList<String> pathStrings) {
-        ArrayList<String> valueArr = new ArrayList<>();
+        String query = "INSERT INTO " + group.getFullTableName() + " (md5, filename, file_path) VALUES (?, ?, ?) " +
+                "ON CONFLICT (file_path) DO NOTHING;";
+        try (PreparedStatement statement = Main.getDbconn().prepareStatement(query)) {
+            // Add values to batch
+            for (String path : pathStrings) {
+                String md5 = Utils.getMd5(path);
+                String dbPath = IngesterConfig.getPathRelativeToShare(path);
+                String fileName = Paths.get(path).getFileName().toString();
+                statement.setString(1, md5);
+                statement.setString(2, fileName);
+                statement.setString(3, Utils.toLinuxPath(dbPath));
+                statement.addBatch();
+            }
 
-        for (String path : pathStrings) {
-
-            String md5 = Utils.getMd5(path);
-            String dbPath = IngesterConfig.getPathRelativeToShare(path);
-
-            valueArr.add("('" + md5 + "', '" + dbPath + "')");
-        }
-
-        String query = "INSERT INTO " + group.getFullTableName() + " (md5, file_path) VALUES ";
-
-        query += String.join(",", valueArr.toArray(new String[0])) + "ON CONFLICT (file_path) DO NOTHING;";
-        try (Statement statement = Main.getDbconn().createStatement()) {
-            statement.executeUpdate(query);
+            // Do batch
+            statement.executeBatch();
         } catch (SQLException e) {
             System.out.println("ERROR: SQL error while adding music files to database");
             return;
         }
-
     }
 
     /**

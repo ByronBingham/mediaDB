@@ -1,5 +1,6 @@
 package org.bmedia.Processing;
 
+import org.apache.commons.io.FileUtils;
 import org.bmedia.IngesterConfig;
 import org.bmedia.Main;
 import org.bmedia.Utils;
@@ -289,13 +290,14 @@ public class ProcessingGroup {
     /**
      * Adds a file to the processing queue for this group's processor. If this image already exists in the DB, the DB
      * entry is simply updated to use the provided path instead of re-processing the image
+     *
      * @param filePath (Absolute/full) path of image to add
      */
-    public void addImageFile(String filePath) {
+    public void addFile(String filePath) {
 
         // check if image already exists in DB
-        long imageID = checkForImageInDB(filePath);
-        if (imageID == -1) {
+        long fileID = checkForFileInDB(filePath);
+        if (fileID == -1) {
             this.mediaProcessor.addAction(filePath, StandardWatchEventKinds.ENTRY_CREATE.name());
         } else {
             // just update image path if the file already exists in the db
@@ -305,7 +307,7 @@ public class ProcessingGroup {
                 return;
             }
             String newPath = Utils.toLinuxPath(relPath);
-            updateImagePath(imageID, newPath);
+            updateFilePath(fileID, newPath);
         }
     }
 
@@ -318,91 +320,134 @@ public class ProcessingGroup {
     }
 
     /**
-     * Checks if the given image file already exists in the DB. This function will do some initial checks (checksum,
+     * Checks if the given file already exists in the DB. This function will do some initial checks (checksum,
      * file size, width, height) and if everything else matches, it will check if the images are the same on a per-pixel basis
+     *
      * @param filePath Path (absolute/full) of image to check
      * @return -1 if no DB image is found. If a matching DB entry is found, the matching image's ID will be returned
      */
-    private long checkForImageInDB(String filePath) {
+    private long checkForFileInDB(String filePath) {
 
-        // check for matching checksum
+        // Get MD5 for specified file
         String md5 = Utils.getMd5(filePath);
-        String query = "SELECT id,resolution_width,resolution_height,file_path,file_size_bytes FROM " + this.fullTableName + " WHERE md5='" + md5 + "';";
-        long imageId = -1;
-        long imageW = -1;
-        long imageH = -1;
-        long imageSizeBytes = -1;
+
+        // Do media-type-specific stuff here
         String dbPath = null;
-        try (Statement statement = Main.getDbconn().createStatement();) {
+        long id = -1;
+        long dupeID = -1;
+        String fullDbPath = null;
+        switch (this.mediaType) {
+            case IMAGE:
+                String imageQuery = "SELECT id,resolution_width,resolution_height,file_path,file_size_bytes FROM " + this.fullTableName + " WHERE md5='" + md5 + "';";
+                long imageW = -1;
+                long imageH = -1;
+                long imageSizeBytes = -1;
+                try (Statement statement = Main.getDbconn().createStatement();) {
 
-            ResultSet result = statement.executeQuery(query);
+                    ResultSet result = statement.executeQuery(imageQuery);
 
-            // no result returned
-            if (!result.next()) {
-                return -1;
-            }
-
-            imageId = result.getLong("id");
-            imageW = result.getLong("resolution_width");
-            imageH = result.getLong("resolution_height");
-            dbPath = result.getString("file_path");
-            imageSizeBytes = result.getLong("file_size_bytes");
-        } catch (SQLException e) {
-            System.out.println("SQL Error: \n" + e.getMessage());
-        }
-
-        // Check dimensions and file size
-        long[] whs = Utils.getWHS(filePath);
-        String fullDbPath = IngesterConfig.getFullFilePath(dbPath);
-        // If width and height are the same, the images might be the same
-        if (whs[0] == imageW && whs[1] == imageH) {
-            // Check if db image was deleted
-            if (dbPath == null || !(new File(fullDbPath).exists())) {
-                // If the image was deleted, we can't verify if the images would have been the same, but if the filesize
-                // Is the same we can probably assume they were the same image
-                if (whs[2] == imageSizeBytes) {
-                    return imageId;
-                } else {
-                    return -1;
-                }
-            }
-
-            // Check if images are really the same
-            double diff = Utils.getImageDiff(filePath, IngesterConfig.getFullFilePath(dbPath));
-            // If the images are the same
-            // TODO: make this threshold configurable
-            if (diff < 0.0000001) {
-                if (IngesterConfig.getDeleteDuplicates()) {
-                    try {
-                        System.out.println("INFO: Deleting duplicate: \"" + fullDbPath + "\"");
-                        Files.delete(Path.of(fullDbPath));
-                    } catch (IOException e) {
-                        System.out.println("WARNING: Could not delete duplicate \"" + fullDbPath + "\"");
+                    // no result returned
+                    if (!result.next()) {
+                        break;
                     }
-                }
-                return imageId;
-            } else {
-                return -1;
-            }
 
-        } else {
-            return -1;
+                    id = result.getLong("id");
+                    imageW = result.getLong("resolution_width");
+                    imageH = result.getLong("resolution_height");
+                    dbPath = result.getString("file_path");
+                    imageSizeBytes = result.getLong("file_size_bytes");
+                } catch (SQLException e) {
+                    System.out.println("SQL Error: \n" + e.getMessage());
+                }
+
+                // Check dimensions and file size
+                long[] whs = Utils.getWHS(filePath);
+                fullDbPath = IngesterConfig.getFullFilePath(dbPath);
+                // If width and height are the same, the images might be the same
+                if (whs[0] == imageW && whs[1] == imageH) {
+                    // Check if db image was deleted
+                    if (dbPath == null || !(new File(fullDbPath).exists())) {
+                        // If the image was deleted, we can't verify if the images would have been the same, but if the filesize
+                        // Is the same we can probably assume they were the same image
+                        if (whs[2] == imageSizeBytes) {
+                            dupeID = id;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    // Check if images are really the same
+                    if (Utils.areFilesSame(filePath, fullDbPath)) {
+                        dupeID = id;
+                    } else {
+                        break;
+                    }
+
+                } else {
+                    break;
+                }
+            case MUSIC:
+                // This just checks that MD5 and filename are the same
+                String musicQuery = "SELECT id,file_path FROM " + this.fullTableName + " WHERE md5='" + md5 + "';";
+                try (Statement statement = Main.getDbconn().createStatement();) {
+
+                    ResultSet result = statement.executeQuery(musicQuery);
+
+                    // no result returned
+                    if (!result.next()) {
+                        break;
+                    }
+
+                    id = result.getLong("id");
+                    dbPath = result.getString("file_path");
+                    fullDbPath = IngesterConfig.getFullFilePath(dbPath);
+
+                    // Check filenames
+                    String dbFileName = Paths.get(dbPath).getFileName().toString();
+                    String inFileName = Paths.get(filePath).getFileName().toString();
+                    if (inFileName.equals(dbFileName)) {
+                        // Make super-duper sure the files are the same
+                        if (Utils.areFilesSame(filePath, fullDbPath)) {
+                            dupeID = id;
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+
+                } catch (SQLException e) {
+                    System.out.println("SQL Error: \n" + e.getMessage());
+                }
+                break;
         }
+
+        // TODO: only delete duplicate files after confirming the new file has been added to the DB
+        if (dupeID != -1 && IngesterConfig.getDeleteDuplicates()) {
+            try {
+                System.out.println("INFO: Deleting duplicate: \"" + fullDbPath + "\"");
+                Files.delete(Path.of(fullDbPath));
+            } catch (IOException e) {
+                System.out.println("WARNING: Could not delete duplicate \"" + fullDbPath + "\"");
+            }
+        }
+
+        return id;
     }
 
     /**
-     * Updates a DB entry with the provided path. Use this if an image has moved or a duplicate was deleted
-     * @param imageID DB entry ID of the image to update
+     * Updates a DB entry with the provided path. Use this if a file has moved or a duplicate was deleted
+     *
+     * @param fileID    DB entry ID of the file to update
      * @param shortPath Path (relative to the file share's base directory) to update
      */
-    private void updateImagePath(long imageID, String shortPath) {
-        System.out.println("INFO: Updating image ID " + imageID + " to path \"" + shortPath);
+    private void updateFilePath(long fileID, String shortPath) {
+        System.out.println("INFO: Updating file ID " + fileID + " to path \"" + shortPath);
 
         String query = "UPDATE " + this.fullTableName + " SET file_path=? WHERE id=?;";
-        try {
-            PreparedStatement statement = Main.getDbconn().prepareStatement(query);
+        try (PreparedStatement statement = Main.getDbconn().prepareStatement(query);) {
             statement.setString(1, shortPath);
-            statement.setLong(2, imageID);
+            statement.setLong(2, fileID);
             statement.executeUpdate();
         } catch (SQLException e) {
             System.out.println("ERROR: SQL Error: \n" + e.getMessage());
