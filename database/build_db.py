@@ -69,14 +69,14 @@ UNIQUE (id, tag_name));\n\n"
 id BIGSERIAL UNIQUE,\
 md5 VARCHAR(32),\
 filename VARCHAR(255),\
-file_path VARCHAR(255) UNIQUE,\
-)"
+file_path VARCHAR(255) UNIQUE\
+);\n"
             out += "CREATE INDEX " + table_spec["table_name"] + "_index ON " + config_data["database_schema"] + "." + table_spec["table_name"] + "(md5);\n"
             out += "CREATE TABLE " + config_data["database_schema"] + "." + table_spec["table_name"] + "_tags_join(\
 id BIGINT,\
 tag_name VARCHAR(255),\
 FOREIGN KEY (id) REFERENCES " + config_data["database_schema"] + "." + table_spec["table_name"] + "(id),\
-FOREIGN KEY (tag_name) REFERENCES " + config_data["database_schema"] + ".tags(tag_name),\
+FOREIGN KEY (tag_name) REFERENCES " + config_data["database_schema"] + "." + table_spec["table_name"] + "_playlists(playlist_name),\
 UNIQUE (id, tag_name));\n\n"
             out += "CREATE TABLE " + config_data["database_schema"] + "." + table_spec["table_name"] + "_playlists(\
 playlist_name VARCHAR(255),\
@@ -84,10 +84,10 @@ PRIMARY KEY (playlist_name),\
 UNIQUE (playlist_name));\n\n"
             out += "CREATE TABLE " + config_data["database_schema"] + "." + table_spec["table_name"] + "_playlists_join(\
 id BIGINT,\
-tag_name VARCHAR(255),\
+playlist_name VARCHAR(255),\
 FOREIGN KEY (id) REFERENCES " + config_data["database_schema"] + "." + table_spec["table_name"] + "(id),\
-FOREIGN KEY (playlist_name) REFERENCES " + config_data["database_schema"] + ".tags(tag_name),\
-UNIQUE (id, tag_name));\n\n"
+FOREIGN KEY (playlist_name) REFERENCES " + config_data["database_schema"] + "." + table_spec["table_name"] + "_playlists(playlist_name),\
+UNIQUE (id, playlist_name));\n\n"
             
         else:
             print("Table type " + table_spec["table_type"] + " is invalid or not yet implemented")
