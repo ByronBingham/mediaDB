@@ -355,6 +355,10 @@ public class ProcessingGroup {
                     imageW = result.getLong("resolution_width");
                     imageH = result.getLong("resolution_height");
                     dbPath = result.getString("file_path");
+                    if(dbPath == null){
+                        System.out.println("INFO: File exists in DB but path was null (ID: " + id + " )");
+                        return id;
+                    }
                     imageSizeBytes = result.getLong("file_size_bytes");
                 } catch (SQLException e) {
                     System.out.println("SQL Error: \n" + e.getMessage());
