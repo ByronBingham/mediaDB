@@ -1,6 +1,4 @@
 # TODO
- - make script that creates database based on config file
-   - change PK from filename to file_path
  - add more metadata to tables
    - music: artist, albumn, genre (just use tags maybe?), etc. link to cover art?
  - add prepared statements to API to speed up queries?
@@ -17,6 +15,18 @@
    - allow to easily change pics per page
    - add endless scrolling
  - acutally use json schemas to validate configs for API/ingester
+ - Music DB
+   - Files
+     - Sync new files
+     - Ensure no duplicates
+   - Metadata
+     - syncing
+     - sync values of differnt tags with eachother
+       - e.g. make 'rating' and 'user rating' same value
+   - Playlists
+     - import playlists
+     - export playlists
+     - sync playlists
 
 ## Ideas
  - Use DeepDanbooru to add tags to un-tagged images
