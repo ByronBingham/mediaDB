@@ -6,6 +6,7 @@ import org.apache.commons.io.FilenameUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -86,6 +87,27 @@ public class Playlist {
             }
         }
 
+        return songPaths;
+    }
+
+    public void addSong(String songPath){
+        if(!Files.exists(Paths.get(songPath))){
+            System.out.println("WARNING: '" + songPath + "' is not a valid file path; it will not be added to this playlist");
+            return;
+        } else {
+            this.songPaths.add(songPath);
+        }
+    }
+
+    public String getClientPLPath() {
+        return clientPLPath;
+    }
+
+    public String getPlaylistTitle() {
+        return playlistTitle;
+    }
+
+    public ArrayList<String> getSongPaths() {
         return songPaths;
     }
 

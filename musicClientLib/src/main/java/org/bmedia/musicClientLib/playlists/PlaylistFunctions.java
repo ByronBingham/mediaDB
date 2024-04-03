@@ -1,6 +1,5 @@
 package org.bmedia.musicClientLib.playlists;
 
-import io.github.borewit.lizzy.playlist.Playlist;
 import io.github.borewit.lizzy.playlist.SpecificPlaylist;
 import io.github.borewit.lizzy.playlist.SpecificPlaylistFactory;
 import io.github.borewit.lizzy.playlist.m3u.M3U;
@@ -29,30 +28,16 @@ public class PlaylistFunctions {
 
     public void updateDBWithPlaylist(String playListFilePath){
 
-        SpecificPlaylist clientPlaylist;
+        Playlist clientPlaylist;
+
         URL pathUrl;
         try {
+            // Get client playlist
             String fileExt = FilenameUtils.getExtension(playListFilePath);
             pathUrl = new URL(playListFilePath);
-            clientPlaylist = SpecificPlaylistFactory.getInstance().readFrom(pathUrl);
-            List<Resource> playlistResources;
+            clientPlaylist = Playlist.parsePlaylist(playListFilePath);
 
-            switch (fileExt){
-                case ".m3u8":
-                    M3U8 m3u8 = (M3U8) clientPlaylist;
-                    playlistResources = m3u8.getResources();
-                    break;
-                case ".m3u":
-                    M3U m3u = (M3U) clientPlaylist;
-                    playlistResources = m3u.getResources();
-                    break;
-                case ".pls":
-                    M3U8 m3U8 = (M3U8) clientPlaylist;
-                    playlistResources = m3U8.getResources();
-                    break;
-                default:
-                    System.out.println("WARNING: ");
-            }
+            // Get DB
 
 
 
