@@ -3,13 +3,19 @@ pipeline {
 
     stages {
         stage('Build'){
-            sh "docker --no-cache build -t bmedia_api -f ./docker/api/ApiDockerfile ."
+            steps {
+                sh "docker --no-cache build -t bmedia_api -f ./docker/api/ApiDockerfile ."
+            }            
         }
         stage('Test'){
-            echo "TODO..."
+            steps {
+                echo "TODO..."
+            }
         }
         stage('Deploy'){
-            echo "TODO"
+            steps{
+                echo "TODO"
+            }            
         }
     }
 }
