@@ -1,3 +1,5 @@
+// This pipeline requires the docker pipeline plugin and the use of
+// a jenkins/jnlp-agent-docker agent. This agent must be run as user/group "jenkins:docker" (may need to use group ID instead of group name)
 pipeline {
     agent { label 'docker' }
 
@@ -6,10 +8,10 @@ pipeline {
             steps {
                 checkout scm
                 script {
-                    def props = readProperties file: '.properties'
+                    def props = readProperties file: '.properties'  // readProperties requires pipeline utility steps plugin
                     version = props.version
                 }
-                sh "docker build -t ${LOCAL_REG_URL}/bmedia_api:SNAPSHOT -f ./docker/api/ApiDockerfile ."
+                sh "docker build -t ${LOCAL_REG_URL}/bmedia_api:${version}_SNAPSHOT -f ./docker/api/ApiDockerfile ."
                 sh "docker push ${LOCAL_REG_URL}/bmedia_api:${version}_SNAPSHOT"
             }            
         }
