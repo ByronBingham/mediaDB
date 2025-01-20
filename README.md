@@ -1,6 +1,16 @@
 # Media Database
 Database project to store personal data on local servers. The goal of this project is to make sorting through media easier than digging through directories that contain hundreds/thousands of media items.
 
+# ! **Deprication Notice** !
+
+**This repo will be depricated in favor of individualized repositories for better organization. This repo will remain as the front page for the MediaDB system, but all of the code and functionality will be moved to the individual repos.**
+
+The new repos can be found here:  
+[Web UI](https://github.com/ByronBingham/mediaDB-GUI)  
+[DB](https://github.com/ByronBingham/mediaDB-DB)  
+[API](https://github.com/ByronBingham/mediaDB-API)  
+[Config](https://github.com/ByronBingham/mediaDB-Config)  
+
 ## Structure/Components
 
 A PostgreSQL database is used to store all metadata about media. The acutal data is stored on the file sytstem, and the database includes paths to the actual files. An API is used by clients to make requests to the database and filesystem. A data ingester is used to populate the database and is responsible for processing data before entry into the database (e.g. auto-tagging images).
